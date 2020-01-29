@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys, os
 import random
+import time
 
 import gym
 import environments
@@ -12,8 +13,8 @@ env.reset()
 
 try:
     while True:
-    	print('Do nothing')
-
+    	env.step(0)
+    	time.sleep(1.0)
 
 except KeyboardInterrupt:
     try:

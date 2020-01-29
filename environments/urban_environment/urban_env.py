@@ -50,11 +50,11 @@ class UrbanEnv(CarlaGym):
 
         
         # Rendering related
-        # self.is_render_enabled = carla_config.render
+        self.is_render_enabled = carla_config.render
 
-        # if self.is_render_enabled:
-        #     self.renderer = Renderer()     
-        #     self.init_renderer()
+        if self.is_render_enabled:
+            self.renderer = Renderer()     
+            self.init_renderer()
 
 
         # Simulating pedestrians
@@ -85,8 +85,6 @@ class UrbanEnv(CarlaGym):
                 self.renderer.render_image(img)
 
         obs = self._get_state()
-
-        print('state: ', obs)
 
         w = self.world.get_map().get_waypoint(self.ego_vehicle.get_location(), project_to_road=True, lane_type=carla.LaneType.Driving | carla.LaneType.Shoulder | carla.LaneType.Sidewalk)
 
@@ -242,22 +240,21 @@ class UrbanEnv(CarlaGym):
         print('control stop: ', control.brake)
 
 
-
     def reset(self, client_only = False):
 
         self.setup_client_and_server(client_only)
 
-        # self.initialize_ego_vehicle()
+        self.initialize_ego_vehicle()
 
-        # self.apply_settings()
+        self.apply_settings()
 
-        # # Get rid of initial moment issue
-        # for i in range(25):
-        #     self.step('2')
+        # Get rid of initial moment issue
+        for i in range(25):
+            self.step('2')
 
-        # obs = self._get_state()
+        obs = self._get_state()
 
-        # return np.asarray(obs)
+        return np.asarray(obs)
 
 
     def initialize_ego_vehicle(self):
