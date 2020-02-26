@@ -1,4 +1,4 @@
-town = "Town-01"
+town = "Town01"
 sp_x = 220.0
 sp_y = 129.5
 sp_z = 0.1

@@ -1,15 +1,8 @@
-
-import sys, glob, os, random, time
-import math
+import sys
+import glob
+import os
+import random
 import numpy as np
-from environments.carla_gym import CarlaGym
-from environments.urban_environment import carla_config
-from environments.urban_environment.actions import ACTIONS, ACTION_CONTROL, ACTIONS_NAMES
-#from environments.urban_environment.spawner import Spawner
-#from environments.urban_environment.walker_spawner import Walkers
-
-import gym
-from gym import spaces
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -18,23 +11,14 @@ try:
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
     pass
-
 import carla
-from carla import ColorConverter as cc
+
 from agents.tools.misc import get_speed
 
+from environments.carla_gym import CarlaGym
+from environments.urban_environment import carla_config
 from utils.renderer import Renderer
 from utils.planner import Planner
-import agents.navigation.cutils
-
-
-DEBUG = 1
-
-try:
-    import pygame
-except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
-
 
 class UrbanEnv(CarlaGym):
     """docstring for ClassName"""
@@ -42,14 +26,17 @@ class UrbanEnv(CarlaGym):
         super(UrbanEnv, self).__init__()
 
         # Initialize environment parameters
-        self.town = "Town01"
+        self.town = carla_config.town
 
         # Sensors
         self.rgb_sensor = carla_config.rgb_sensor
         self.sem_sensor = carla_config.sem_sensor
 
+        # Planners
+        self.planner = None
         
         # Rendering related
+        self.renderer = None
         self.is_render_enabled = carla_config.render
 
         if self.is_render_enabled:
@@ -57,94 +44,24 @@ class UrbanEnv(CarlaGym):
             self.init_renderer()
 
 
-        # Simulating pedestrians
-        self.walkers = None
-
-        self.target_speed_prev = 0.0
-
-        low = np.array([])
-        high = np.array([])
-        for i in range(carla_config.num_of_ped):
-            np.concatenate((low, np.array([np.finfo(np.float32).min, np.finfo(np.float32).min, -360, 0])))
-            np.concatenate((high, np.array([np.finfo(np.float32).min, np.finfo(np.float32).min, 360, 0])))
-
-
-        self.action_space = spaces.Discrete(carla_config.N_DISCRETE_ACTIONS)
-
-        self.observation_space = spaces.Box(low=0, high=255, shape = (carla_config.WIDTH, carla_config.HEIGHT, carla_config.N_CHANNELS), dtype=np.uint8)
-
     def step(self, action = None,sp=25):
 
         self._take_action(action, sp)
 
         self.tick()
 
+        self._get_observation()
+
+        self._get_reward()
+
         if self.render: 
             if self.rgb_image is not None:
                 img = self.get_rendered_image()
                 self.renderer.render_image(img)
 
-        obs = self._get_state()
 
-        w = self.world.get_map().get_waypoint(self.ego_vehicle.get_location(), project_to_road=True, lane_type=carla.LaneType.Driving | carla.LaneType.Shoulder | carla.LaneType.Sidewalk)
-
-        reward, done = self._get_reward()
-
-        return np.asarray(obs), reward, done, {}
-
-
-    def _get_state(self):
-
-        state = [0 for i in range(self.observation_space.shape[0])]
-        actor_list = self.world.get_actors()
-        pedestrian_list = actor_list.filter('walker.pedestrian.*')
-
-
-        ped_list_sorted = []
-
-        for p in pedestrian_list:
-            pos = self.ego_vehicle.get_transform().transform(p.get_transform().location)
-            ped_info = (p.id, math.sqrt(pos.x*pos.x + pos.y*pos.y))
-            ped_list_sorted.append(ped_info)
-
-
-        ped_list_sorted.sort(key = lambda x:x[1])
-
-        counter = 0
-        for p in ped_list_sorted:
-            ped = self.world.get_actor(p[0])
-            
-
-            ev_loc = self.ego_vehicle.get_transform()
-            ped_loc = ped.get_transform().location
-
-            rel_ped_pos = self.ego_vehicle.get_transform().transform(ped_loc)
-            rel_ped_head = ped.get_transform().rotation.yaw - self.ego_vehicle.get_transform().rotation.yaw
-
-            if math.sqrt(rel_ped_pos.x*rel_ped_pos.x + rel_ped_pos.y*rel_ped_pos.y) > 5000:
-                continue
-
-            w = self.world.get_map().get_waypoint(ped_loc, project_to_road=True, lane_type=carla.LaneType.Driving | carla.LaneType.Sidewalk)
-            l_type = 1
-            if w.lane_type == 'Driving':
-                l_type = 0
-            elif w.lane_type == 'Sidewalk':
-                l_type = 1
-
-            state[counter] = rel_ped_pos.x
-            counter += 1
-            state[counter] = rel_ped_pos.y
-            counter += 1
-            state[counter] = rel_ped_head
-            counter += 1
-            state[counter] = l_type
-            counter += 1
-
-            print('counter, state', counter, len(state))
-            if counter >= len(state):
-                break
-        
-        return state
+    def _get_observation(self):
+        return None
 
 
     def _get_reward(self):
@@ -152,8 +69,7 @@ class UrbanEnv(CarlaGym):
         total_reward = d_reward = nc_reward = c_reward = 0
 
         # Reward for speed 
-
-        ev_speed = self.get_ego_speed()
+        ev_speed = get_speed(self.ego_vehicle)
 
         if ev_speed > 0.0 and ev_speed <=50:
             d_reward = (10.0 - abs(10.0 - ev_speed))/10.0
@@ -165,14 +81,10 @@ class UrbanEnv(CarlaGym):
             d_reward = -2
 
 
-        # Reward for safety
-        ped_list = self.world.get_actors().filter('walker.pedestrian.*')
-
         total_reward = d_reward + nc_reward + c_reward
-        return 0, False
 
-    def get_ego_speed(self):
-        return get_speed(self.ego_vehicle)
+        return total_reward
+
 
     def _take_action(self, action, sp):
 
@@ -204,18 +116,6 @@ class UrbanEnv(CarlaGym):
             self.emergency_stop()
 
 
-    def cruise(self):
-        self.planner.local_planner.set_speed(25)
-        self.apply_control(control)
-
-    def apply_control(self, target_speed):
-
-        if target_speed is not None:
-            self.planner.local_planner.set_speed(target_speed)
-        control = self.planner.run_step()
-        self.ego_vehicle.apply_control(control)
-
-
     def emergency_stop(self):
         control = carla.VehicleControl()
         control.steer = 0.0
@@ -223,21 +123,6 @@ class UrbanEnv(CarlaGym):
         control.brake = 1.0
         control.hand_brake = False
         self.ego_vehicle.apply_control(control)
-
-    def slow_down(self):
-        current_speed = get_speed(self.ego_vehicle)
-        self.planner.local_planner.set_speed(current_speed - 1.0)
-        control = self.planner.run_step()
-        self.ego_vehicle.apply_control(control)
-        control.brake = 0.0
-
-    def stop(self):
-        
-        self.planner.local_planner.set_speed(0)
-        control = self.planner.run_step()
-        control.brake = -0.05
-        self.ego_vehicle.apply_control(control)
-        print('control stop: ', control.brake)
 
 
     def reset(self, client_only = False):
@@ -247,14 +132,6 @@ class UrbanEnv(CarlaGym):
         self.initialize_ego_vehicle()
 
         self.apply_settings()
-
-        # Get rid of initial moment issue
-        for i in range(25):
-            self.step('2')
-
-        obs = self._get_state()
-
-        return np.asarray(obs)
 
 
     def initialize_ego_vehicle(self):
@@ -294,6 +171,16 @@ class UrbanEnv(CarlaGym):
         spawn_point = self.world.get_map().get_spawn_points()[0] #
         self.planner.set_destination((spawn_point.location.x, spawn_point.location.y, spawn_point.location.z))
 
+    def spawn_ego_vehicle(self, bp = None, sp = None):
+
+        if not bp:
+            bp = random.choice(self.world.get_blueprint_library().filter('vehicle.*'))
+
+        if not sp:
+            sp =  random.choice(self.world.get_map().get_spawn_points())
+
+        return self.world.spawn_actor(bp, sp)
+
 
     def rgb_sensor_callback(self, image):
         #image.convert(cc.Raw)
@@ -312,6 +199,13 @@ class UrbanEnv(CarlaGym):
 
 
     def close(self):
+        if carla_config.rgb_sensor:
+            self.rgb_sensor.destroy()
+        if carla_config.sem_sensor:
+            self.semantic_sensor.destroy()
+        if self.ego_vehicle is not None:
+            self.ego_vehicle.destroy()
+            
         if self.renderer is not None:
             self.renderer.close()
         self.kill_processes()

@@ -1,10 +1,11 @@
-import os, sys, subprocess, time
+import os 
+import sys
+import subprocess
+import glob
+import time
 from os import path, environ
 import psutil
-import glob
-
 import gym
-from gym import spaces
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -13,11 +14,8 @@ try:
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
     pass
-
 import carla
 
-from utils.renderer import Renderer
-from utils.planner import Planner
 
 class CarlaGym(gym.Env):
     def __init__(self):
@@ -25,21 +23,7 @@ class CarlaGym(gym.Env):
         self.server = None
         self.client = None
         self.world = None
-
-        self.planner = None
-        self.renderer = None
-
-    def spawn_ego_vehicle(self, bp = None, sp = None):
-
-        if not bp:
-            bp = random.choice(self.world.get_blueprint_library().filter('vehicle.*'))
-
-        if not sp:
-            sp =  random.choice(self.world.get_map().get_spawn_points())
-
-        return self.world.try_spawn_actor(bp, sp)
-
-        
+      
 
     def kill_processes(self):
         binary = 'CarlaUE4.sh'
@@ -101,6 +85,7 @@ class CarlaGym(gym.Env):
 
         return p
 
+
     def setup_client_and_server(self, reconnect_client_only = False):
 
         # open the server
@@ -123,7 +108,6 @@ class CarlaGym(gym.Env):
             synchronous_mode=True,
             fixed_delta_seconds=self.delta_seconds))
 
-        self.world.tick()
 
     def tick(self):
         self.world.tick()

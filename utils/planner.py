@@ -37,12 +37,10 @@ class Planner(object):
         self.local_planner.set_global_plan(self.route_trace)
 
     def run_step(self):
-        return self.local_planner.run_step(True)
+        return self.local_planner.run_step(False)
 
     def view_plan(self):
-        #waypoints = self._vehicle.get_worl().get_map().generate_waypoints(4.0)
         for w in self.route_trace:
-            #print(w[0])
             self._vehicle.get_world().debug.draw_string(w[0].transform.location, 'o', draw_shadow=False,
                                        color=carla.Color(r=255, g=0, b=0), life_time=120.0,
                                        persistent_lines=True)
