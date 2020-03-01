@@ -4,8 +4,11 @@ import os
 import random
 import numpy as np
 
+import gym
+from gym import spaces
+
 try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('/home/niranjan/carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -13,8 +16,8 @@ except IndexError:
     pass
 import carla
 
-from agents.tools.misc import get_speed
 
+from agents.tools.misc import get_speed
 from environments.carla_gym import CarlaGym
 from environments.urban_environment import carla_config
 from utils.renderer import Renderer
@@ -34,6 +37,11 @@ class UrbanEnv(CarlaGym):
 
         # Planners
         self.planner = None
+
+        # States and actions
+        self.observation_space = spaces.Box(low=0, high=255, shape=(carla_config.grid_height, carla_config.grid_width, carla_config.features), dtype=np.uint8)
+        self.action_space = spaces.Discrete(carla_config.N_DISCRETE_ACTIONS)
+
         
         # Rendering related
         self.renderer = None
