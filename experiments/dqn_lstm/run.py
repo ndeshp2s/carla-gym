@@ -4,24 +4,20 @@ import torch
 import gym
 from gym import error, spaces
 
-import environments
-from utils.config import Config
-from agents.DQN.dqn import DQNAgent
 
-def load_config(observation_space, action_space):
+from experiments.trainer import Trainer
+from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv                                      
+from experiments.config import Config
+from rl_agents.DQN.ddqn import DDQNAgent
 
+
+
+def main(args):
+
+    # Load configuration
     config = Config()
-    config.seed = 1
 
-    config.action_dim = action_space
-    
-    config.state_dim = observation_space
-    
-    config.use_cuda = True
-
-    config.num_of_episodes = 1000
-    config.steps_per_episode = 1000
-    config.current_episode = 0
+    config.env = args.env
 
     config.hyperparameters = {
         "learning_rate": 0.1,
@@ -35,33 +31,34 @@ def load_config(observation_space, action_space):
         "discount_rate": 0.99,
         "tau": 0.01
     }
+    
+    config.use_cuda = True
 
-    config.config_path = "/home/niranjan/carla-gym/experiments/test1/config/"
-    config.model_path = config.path = "/home/niranjan/carla-gym/experiments/test1/model/"
+    config.number_of_episodes = 1000
+    config.steps_per_episode = 1000
+    config.previous_episode = 0
 
-    return config
+
+    # Initialize the environment
+    env = gym.make('Urban-v0')
+    config.state_dim = env.observation_space
+    config.action_dim = env.action_space.n
 
 
-def main(args):
+    # Initialize the agent
+    agent = DDQNAgent(config)
 
-	# Initialize the environment
-	env = gym.make('Urban-v0')
+    if args.train:
+        trainer = Trainer(env, agent, config)
 
-	state_size = env.observation_space
-	action_size = env.action_space.n
-
-	config = load_config(env.observation_space, env.action_space.n)
-
-	print(state_size)
-	print(action_size)
-
-	# Initialize the agent
-	agent = DQNAgent(config)
+    elif args.test:
+        None
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--train', dest='train', action='store_true', help='train model')
+    parser.add_argument('--config_path', type=str, help='file with training parameters')
     parser.add_argument('--env', default='Urban-v0', type=str, help='gym environment')
     parser.add_argument('--test', dest='test', action='store_true', help='test model')
     parser.add_argument('--model_path', type=str, help='if test, import the model')
