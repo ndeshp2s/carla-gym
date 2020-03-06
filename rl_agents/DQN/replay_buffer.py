@@ -1,13 +1,14 @@
+import torch
+from collections import deque, namedtuple
+
 class ReplayBuffer():
-    def __init__(self, buffer_size, batch_size, seed):
+    def __init__(self, buffer_size):
 
         self.memory = deque(maxlen = buffer_size)
-        self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names = ["state", "action", "reward", "next_state", "done"])
-        self.seed = random.seed(seed)
-        self.device =torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    def add(self, state, action, reward, next_state, done):
+    def add_experience(self, state, action, reward, next_state, done):
         experience = self.experience(state, action, reward, next_state, done)
         self.memory.append(experience)
 
@@ -21,6 +22,15 @@ class ReplayBuffer():
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
 
         return (states, actions, rewards, next_states, dones)
+
+    # def get_batch(self, batch_size = 0, sequence_length = 0):
+    #     experiences = random.sample(self.memory, batch_size)
+
+    #     batch = []
+    #     for e in experiences:
+    #         point = np.random.randit(0, len(e) + 1 - sequence_length)
+    #         batch.append(e[point:point + sequence_length])
+    #     return batch
 
     def __len__(self):
         return len(self.memory)
