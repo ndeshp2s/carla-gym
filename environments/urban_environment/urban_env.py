@@ -17,7 +17,8 @@ except IndexError:
 import carla
 
 
-from agents.tools.misc import get_speed
+#from agents.tools.misc import get_speed
+import agents
 from environments.carla_gym import CarlaGym
 from environments.urban_environment import carla_config
 from utils.renderer import Renderer
@@ -30,6 +31,9 @@ class UrbanEnv(CarlaGym):
 
         # Initialize environment parameters
         self.town = carla_config.town
+        self.state_y = carla_config.grid_height
+        self.state_x = carla_config.grid_width
+        self.channel = carla_config.features
 
         # Sensors
         self.rgb_sensor = carla_config.rgb_sensor
@@ -58,40 +62,45 @@ class UrbanEnv(CarlaGym):
 
         self.tick()
 
-        self._get_observation()
+        state = self._get_observation()
 
-        self._get_reward()
+        reward, done = self._get_reward()
 
         if self.render: 
             if self.rgb_image is not None:
                 img = self.get_rendered_image()
                 self.renderer.render_image(img)
 
+        return state, reward, done 
+
 
     def _get_observation(self):
-        return None
+        o = np.zeros([self.state_y, self.state_x, self.channel])
+        return o
 
 
     def _get_reward(self):
 
+        done = False
+
         total_reward = d_reward = nc_reward = c_reward = 0
 
-        # Reward for speed 
-        ev_speed = get_speed(self.ego_vehicle)
+        # # Reward for speed 
+        # ev_speed = get_speed(self.ego_vehicle)
 
-        if ev_speed > 0.0 and ev_speed <=50:
-            d_reward = (10.0 - abs(10.0 - ev_speed))/10.0
+        # if ev_speed > 0.0 and ev_speed <=50:
+        #     d_reward = (10.0 - abs(10.0 - ev_speed))/10.0
 
-        elif ev_speed > 50:
-            d_reward = -5
+        # elif ev_speed > 50:
+        #     d_reward = -5
 
-        elif ev_speed <= 0.0:
-            d_reward = -2
+        # elif ev_speed <= 0.0:
+        #     d_reward = -2
 
 
         total_reward = d_reward + nc_reward + c_reward
 
-        return total_reward
+        return total_reward, done
 
 
     def _take_action(self, action, sp):
