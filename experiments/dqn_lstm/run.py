@@ -1,5 +1,6 @@
 import argparse
 import torch
+import os, sys
 
 import gym
 from gym import error, spaces
@@ -22,6 +23,7 @@ def main(args):
     config.hyperparameters = {
         "learning_rate": 0.1,
         "batch_size": 32,
+        "sequence_length": 1,
         "buffer_size": int(1e5),
         "update_every_n_steps": 1,
         "min_steps_before_learning": 1000,
@@ -37,22 +39,34 @@ def main(args):
     config.number_of_episodes = 1000
     config.steps_per_episode = 1000
     config.previous_episode = 0
+    config.total_steps = 10000
 
 
     # Initialize the environment
     env = gym.make('Urban-v0')
-    config.state_dim = env.observation_space
+    config.state_dim = env.observation_space.shape
     config.action_dim = env.action_space.n
 
 
     # Initialize the agent
     agent = DDQNAgent(config)
 
-    if args.train:
-        trainer = Trainer(env, agent, config)
+    # if args.train:
+    #     trainer = Trainer(env, agent, config)
 
-    elif args.test:
-        None
+    #     # try:
+    #     #     trainer.train()
+
+    #     # except KeyboardInterrupt:
+    #     #     try:
+    #     #         trainer.close()
+    #     #         sys.exit(0)
+    #     #     except SystemExit:
+    #     #         trainer.close()
+    #     #         os._exit(0)
+
+    # elif args.test:
+    #     None
 
 
 if __name__ == '__main__':
