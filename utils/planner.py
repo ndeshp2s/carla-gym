@@ -2,7 +2,7 @@ import carla
 from agents.navigation.local_planner import LocalPlanner
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
-
+import agents
 
 class Planner(object):
     def __init__(self, vehicle = None):
