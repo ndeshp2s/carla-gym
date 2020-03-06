@@ -1,4 +1,5 @@
 
+import os
 
 def get_output_folder(parent_dir, env_name):
     """Return save folder.
@@ -33,3 +34,16 @@ def get_output_folder(parent_dir, env_name):
     parent_dir = parent_dir + '-run{}'.format(experiment_id)
     os.makedirs(parent_dir, exist_ok=True)
     return parent_dir
+
+
+# Search method
+class EpsilonTracker:
+    def __init__(self, epsilon_start, epsilon_final, warmup_steps, total_steps):
+        self.epsilon_start = epsilon_start
+        self.epsilon_final = epsilon_final
+        self.epsilon_frames = total_steps - warmup_steps
+
+    def update(self, step_number):
+        epsilon = max(self.epsilon_final, self.epsilon_start - step_number / self.epsilon_frames)
+
+        return epsilon
