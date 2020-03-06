@@ -6,7 +6,8 @@ class Config:
     use_cuda = None
     number_of_episodes = 0
     steps_per_episode = 0
+    total_steps = 0
     current_episode = 0
-    output = 'logs'
+    log_dir = 'experiments/dqn_lstm/logs' 
 
 
