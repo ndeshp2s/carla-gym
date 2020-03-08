@@ -15,6 +15,9 @@ from rl_agents.DQN.ddqn import DDQNAgent
 
 def main(args):
 
+    # Directory of current experiment
+    experiment_dir = 'experiments/dqn_lstm/test1'
+
     # Load configuration
     config = Config()
 
@@ -41,6 +44,14 @@ def main(args):
     config.previous_episode = 0
     config.total_steps = 10000
 
+    config.checkpoint = True
+    config.checkpoint_interval = 1
+    config.checkpoint_dir = experiment_dir + '/checkpoints'
+
+    config.log_dir = experiment_dir + '/logs'
+
+    config.model_dir = experiment_dir + '/model'
+
 
     # Initialize the environment
     env = gym.make('Urban-v0')
@@ -51,22 +62,22 @@ def main(args):
     # Initialize the agent
     agent = DDQNAgent(config)
 
-    # if args.train:
-    #     trainer = Trainer(env, agent, config)
+    if args.train:
+        trainer = Trainer(env, agent, config)
 
-    #     # try:
-    #     #     trainer.train()
+        try:
+            trainer.train()
 
-    #     # except KeyboardInterrupt:
-    #     #     try:
-    #     #         trainer.close()
-    #     #         sys.exit(0)
-    #     #     except SystemExit:
-    #     #         trainer.close()
-    #     #         os._exit(0)
+        except KeyboardInterrupt:
+            try:
+                trainer.close()
+                sys.exit(0)
+            except SystemExit:
+                trainer.close()
+                os._exit(0)
 
-    # elif args.test:
-    #     None
+    elif args.test:
+        None
 
 
 if __name__ == '__main__':
