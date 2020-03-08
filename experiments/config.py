@@ -8,6 +8,12 @@ class Config:
     steps_per_episode = 0
     total_steps = 0
     current_episode = 0
-    log_dir = 'experiments/dqn_lstm/logs' 
+    log_dir = None
+    checkpoint: bool = False
+    checkpoint_interval: int = None
+    checkpoint_dir = None
+    model_dir = None
+
+
 
 
