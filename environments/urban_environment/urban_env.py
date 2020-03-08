@@ -66,7 +66,7 @@ class UrbanEnv(CarlaGym):
 
         reward, done = self._get_reward()
 
-        if self.render: 
+        if self.render and self.is_render_enabled: 
             if self.rgb_image is not None:
                 img = self.get_rendered_image()
                 self.renderer.render_image(img)
@@ -144,11 +144,18 @@ class UrbanEnv(CarlaGym):
 
     def reset(self, client_only = False):
 
-        self.setup_client_and_server(client_only)
+        if self.server:
+            self.close() 
+
+        self.setup_client_and_server(display = carla_config.display, rendering = carla_config.render)
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings()
+        self.apply_settings(rendering = carla_config.render)
+
+        state = self._get_observation()
+
+        return state
 
 
     def initialize_ego_vehicle(self):
