@@ -89,5 +89,10 @@ class Trainer:
         self.env.close()
 
 
+    def load_checkpoint(self, file = None, checkpoint_dir = None):
+        checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
+
+
+
 
 
