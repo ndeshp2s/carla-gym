@@ -53,7 +53,7 @@ class CarlaGym(gym.Env):
             psutil.wait_procs(still_alive)
 
 
-    def open_server(self, display = True, rendering = False, town = "Town01", synchronous = True):
+    def open_server(self, display = True, rendering = True, town = "Town01", synchronous = True):
         p = None
         cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
 
@@ -68,13 +68,13 @@ class CarlaGym(gym.Env):
         
         while True:
             try:
-                client = carla.Client('localhost', 2000, 10)
+                client = carla.Client('localhost', 2000, 100)
 
                 if client.get_world().get_map().name != town:
-                    carla.Client('localhost', 2000, 10).load_world(self.town)
+                    carla.Client('localhost', 2000, 100).load_world(self.town)
                     while True:
                         try:
-                            while carla.Client('localhost', 2000, 10).get_world().get_map().name != town:
+                            while carla.Client('localhost', 2000, 100).get_world().get_map().name != town:
                                 time.sleep(0.1)
                             break
                         except:
@@ -86,12 +86,12 @@ class CarlaGym(gym.Env):
         return p
 
 
-    def setup_client_and_server(self, reconnect_client_only = False):
+    def setup_client_and_server(self, display = True, rendering = True, reconnect_client_only = False):
 
         # open the server
         if not reconnect_client_only:
             self.kill_processes()
-            self.server = self.open_server()
+            self.server = self.open_server(display = display, rendering = rendering)
 
 
         # open client
@@ -99,7 +99,7 @@ class CarlaGym(gym.Env):
         self.world = self.client.get_world()
 
 
-    def apply_settings(self, fps = 10.0):
+    def apply_settings(self, fps = 10.0, rendering = True):
 
         self.delta_seconds = 1.0 / fps
         self._settings = self.world.get_settings()
