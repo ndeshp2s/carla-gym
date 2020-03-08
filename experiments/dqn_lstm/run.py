@@ -76,6 +76,13 @@ def main(args):
                 trainer.close()
                 os._exit(0)
 
+    elif args.retrain:
+        if args.checkpoint_file is None:
+            print(' ---------- Please mention checkoutpoint file name ----------')
+            return
+        trainer = Trainer(env, agent, config)
+        trainer.load_checkpoint(args.checkpoint_file)
+
     elif args.test:
         None
 
@@ -87,6 +94,8 @@ if __name__ == '__main__':
     parser.add_argument('--env', default='Urban-v0', type=str, help='gym environment')
     parser.add_argument('--test', dest='test', action='store_true', help='test model')
     parser.add_argument('--model_path', type=str, help='if test, import the model')
+    parser.add_argument('--checkpoint_file', default = None, type=str, help='if retrain, import the model and previous parameters')
+    parser.add_argument('--retrain', dest='retrain', action='store_true', help='re-train model')
     args = parser.parse_args()
 
     main(parser.parse_args())
