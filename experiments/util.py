@@ -38,12 +38,22 @@ def get_output_folder(parent_dir, env_name):
 
 # Search method
 class EpsilonTracker:
-    def __init__(self, epsilon_start, epsilon_final, warmup_steps, total_steps):
+    def __init__(self, epsilon_start = 1.0, epsilon_final = 0.1, warmup_steps = 0, total_steps = 0, epsilon_decay = 0.995):
         self.epsilon_start = epsilon_start
         self.epsilon_final = epsilon_final
         self.epsilon_frames = total_steps - warmup_steps
+        self.epsilon_decay = epsilon_decay
 
-    def update(self, step_number):
-        epsilon = max(self.epsilon_final, self.epsilon_start - step_number / self.epsilon_frames)
+    def update(self, step_number = 0):
+
+        epsilon = 1.0
+
+        # If no step number mentioned, it means decrease epsilon exponentially based on epsilon decay
+        if step_number == 0:
+            epsilon *= self.epsilon_decay 
+            epsilon = max(self.epsilon_final, epsilon)
+        
+        else:
+            epsilon = max(self.epsilon_final, self.epsilon_start - step_number / self.epsilon_frames)
 
         return epsilon
