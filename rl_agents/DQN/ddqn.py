@@ -1,9 +1,10 @@
+import os
 import torch
 import torch.optim as optim
 
 from experiments.config import Config
 from rl_agents.DQN.replay_buffer import ReplayBuffer
-from neural_networks.cnn_lstm import NeuralNetwork
+from neural_networks.fc64_fc64 import NeuralNetwork
 
 class DDQNAgent:
     def __init__(self, config: Config):
@@ -30,8 +31,8 @@ class DDQNAgent:
         # Initialise replay memory
         self.memory = ReplayBuffer(self.hyperparameters["buffer_size"])
 
-    def add(self, state, reward, action, next_state):
-        self.memory.add(state, reward, action, next_state)
+    def add(self, state, reward, action, next_state, done):
+        self.memory.add_experience(state, reward, action, next_state, done)
 
     def learn(self, experiences = None):
 
@@ -50,4 +51,15 @@ class DDQNAgent:
 
     #     else:
     #         states, actions, rewards, next_states, dones = experiences
+
+    def save_model(self, directory = None, tag = ''):
+        if directory is None:
+            return
+
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+
+        torch.save(self.local_network.state_dict(), '%s/model%s.pkl' % (directory, ('-' + tag)))
+
+        
 
