@@ -1,5 +1,7 @@
 
 import os
+import math
+
 
 def get_output_folder(parent_dir, env_name):
     """Return save folder.
@@ -43,6 +45,9 @@ class EpsilonTracker:
         self.epsilon_final = epsilon_final
         self.epsilon_frames = total_steps - warmup_steps
         self.epsilon_decay = epsilon_decay
+        self.epsilon_current = epsilon_start
+
+        print( self.epsilon_start, self.epsilon_final, self.epsilon_frames, self.epsilon_decay, self.epsilon_current)
 
     def update(self, step_number = 0):
 
@@ -50,10 +55,13 @@ class EpsilonTracker:
 
         # If no step number mentioned, it means decrease epsilon exponentially based on epsilon decay
         if step_number == 0:
-            epsilon *= self.epsilon_decay 
-            epsilon = max(self.epsilon_final, epsilon)
+            self.epsilon_current *= self.epsilon_decay 
+            epsilon = max(self.epsilon_final, self.epsilon_current)
         
         else:
-            epsilon = max(self.epsilon_final, self.epsilon_start - step_number / self.epsilon_frames)
+            epsilon = self.epsilon_final + (self.epsilon_start + self.epsilon_final) * math.exp(-1. * step_number/self.epsilon_decay)
+            #epsilon = max(self.epsilon_final, self.epsilon_start - step_number / self.epsilon_frames)
 
+        self.epsilon_current = epsilon
+            
         return epsilon

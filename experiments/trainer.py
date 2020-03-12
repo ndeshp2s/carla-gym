@@ -11,13 +11,18 @@ class Trainer:
         self.env = env
         self.agent = agent
         self.config = config
-
-        self.epsilon_decay = EpsilonTracker(self.config.hyperparameters["epsilon_start"], self.config.hyperparameters["epsilon_end"], 
-            self.config.hyperparameters["min_steps_before_learning"], self.config.number_of_episodes * self.config.steps_per_episode)
+        self.epsilon_decay = EpsilonTracker(epsilon_start = self.config.hyperparameters["epsilon_start"], epsilon_final = self.config.hyperparameters["epsilon_end"], 
+            warmup_steps = self.config.hyperparameters["min_steps_before_learning"], total_steps = self.config.total_steps, epsilon_decay = self.config.hyperparameters["epsilon_decay"])
 
         if not os.path.isdir(self.config.log_dir):
             os.makedirs(self.config.log_dir)
         self.writer = SummaryWriter(log_dir = self.config.log_dir)
+
+        # Parameters for re-training
+        self.previous_episode = 0
+        self.epsilon = 0
+
+        self.start_learning = False
 
     def train(self, previous_episode = 0):
         losses = []
@@ -34,11 +39,11 @@ class Trainer:
             episode_reward = 0
             state = self.env.reset()
 
-            for step_num in range(50):
+            for step_num in range(self.config.total_steps):
                 
                 # Select action
-                action = '2'
-
+                action = self.agent.pick_action(state, epsilon)
+                
                 # Execute step
                 next_state, reward, done = self.env.step(action)
 
@@ -48,15 +53,26 @@ class Trainer:
                 # Update parameters
                 state = next_state
                 episode_reward += reward
+                total_steps += 1
 
                 # Performing learning if minumum required experiences gathered
                 loss = 0
+                if total_steps > self.config.pre_train_steps and total_steps % self.config.learing_frequency == 0:
+                    loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"])
+
 
                 if done:
                     break
 
                 # epsilon update
-                epsilon = self.epsilon_decay.update()
+                # Only after a few initial steps
+                # if total_steps > self.config.pre_train_steps:
+                #     epsilon = self.epsilon_decay.update(total_steps)
+                epsilon -= (1 - 0.1)/self.config.total_steps
+                print(epsilon)
+
+                self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
+
 
 
             # Print details of the episode
@@ -74,11 +90,13 @@ class Trainer:
             if not os.path.isdir(self.config.checkpoint_dir):
                 os.makedirs(self.config.checkpoint_dir)
 
-            checkpoint = {'state_dict': self.agent.local_network.state_dict(),
-                        'optimizer': self.agent.optimizer.state_dict(),
-                        'episode': ep_num,
-                        'epsilon': epsilon}
-            torch.save(checkpoint, self.config.checkpoint_dir + '/model_and_parameters.pth')
+            if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
+                checkpoint = {'state_dict': self.agent.local_network.state_dict(),
+                            'optimizer': self.agent.optimizer.state_dict(),
+                            'episode': ep_num,
+                            'epsilon': epsilon,
+                            'total_steps': total_steps}
+                torch.save(checkpoint, self.config.checkpoint_dir + '/model_and_parameters.pth')
             
             # if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
             #     self.agent.save_checkpoint()
@@ -91,6 +109,21 @@ class Trainer:
 
     def load_checkpoint(self, file = None, checkpoint_dir = None):
         checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
+
+        # Load netwrok weights and biases
+        self.agent.local_network = checkpoint['model_state_dict']
+        self.agent.target_network = checkpoint['model_state_dict']
+        self.agent.optimizer = checkpoint['optimizer_state_dict']
+        self.previous_episode = checkpoint['episode']
+        self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
+
+        self.agent.local_network.train()
+        self.agent.target_network.train()
+
+    def retrain(self):
+        self.train(self.previous_episode)
+
+
 
 
 
