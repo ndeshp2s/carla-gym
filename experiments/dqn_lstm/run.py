@@ -25,24 +25,26 @@ def main(args):
 
     config.hyperparameters = {
         "learning_rate": 0.1,
-        "batch_size": 32,
+        "batch_size": 2,
         "sequence_length": 1,
         "buffer_size": int(1e5),
         "update_every_n_steps": 1,
         "min_steps_before_learning": 1000,
         "epsilon_start": 1,
         "epsilon_end": 0.01,
-        "epsilon_decay": 0.996,
+        "epsilon_decay": 1000,
         "discount_rate": 0.99,
-        "tau": 0.01
+        "tau": 0.01,
     }
     
     config.use_cuda = True
 
-    config.number_of_episodes = 1000
+    config.number_of_episodes = 1
     config.steps_per_episode = 1000
     config.previous_episode = 0
-    config.total_steps = 10000
+    config.total_steps = 160000
+    config.pre_train_steps = 1
+    config.learing_frequency = 1
 
     config.checkpoint = True
     config.checkpoint_interval = 1
@@ -82,6 +84,17 @@ def main(args):
             return
         trainer = Trainer(env, agent, config)
         trainer.load_checkpoint(args.checkpoint_file)
+
+        try:
+            trainer.retrain()
+
+        except KeyboardInterrupt:
+            try:
+                trainer.close()
+                sys.exit(0)
+            except SystemExit:
+                trainer.close()
+                os._exit(0)
 
     elif args.test:
         None
