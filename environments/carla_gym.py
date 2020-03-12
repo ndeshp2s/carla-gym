@@ -68,13 +68,13 @@ class CarlaGym(gym.Env):
         
         while True:
             try:
-                client = carla.Client('localhost', 2000, 100)
+                client = carla.Client('localhost', 2000, 10)
 
                 if client.get_world().get_map().name != town:
                     carla.Client('localhost', 2000, 100).load_world(self.town)
                     while True:
                         try:
-                            while carla.Client('localhost', 2000, 100).get_world().get_map().name != town:
+                            while carla.Client('localhost', 2000, 10).get_world().get_map().name != town:
                                 time.sleep(0.1)
                             break
                         except:
