@@ -31,7 +31,7 @@ screen_y = 720
 
 #ACTIONS = ['forward', 'brake', 'no_action'] #['forward', 'forward_left', 'forward_right', 'brake', 'brake_left', 'brake_right']
 ACTIONS = ['accelerate', 'cont', 'decelerate', 'brake']
-N_DISCRETE_ACTIONS = 3
+N_DISCRETE_ACTIONS = 4
 
 # Observation space
 num_of_ped = 3
