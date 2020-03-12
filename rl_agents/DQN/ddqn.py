@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import torch
 import torch.optim as optim
 
@@ -27,6 +28,7 @@ class DDQNAgent:
         self.local_network = NeuralNetwork(self.state_size, self.action_size).to(self.device)
         self.target_network = NeuralNetwork(self.state_size, self.action_size).to(self.device)
         self.optimizer = optim.Adam(self.local_network.parameters(), lr = self.hyperparameters["learning_rate"])
+        self.criterion = torch.nn.MSELoss()
 
         # Initialise replay memory
         self.memory = ReplayBuffer(self.hyperparameters["buffer_size"])
@@ -34,13 +36,46 @@ class DDQNAgent:
     def add(self, state, reward, action, next_state, done):
         self.memory.add_experience(state, reward, action, next_state, done)
 
-    def learn(self, experiences = None):
+    def learn(self, batch_size = 32, experiences = None):
 
         if experiences is None:
-            states, actions, rewards, next_states, dones  = self.memory.sample()
+            states, actions, rewards, next_states, dones  = self.memory.sample(batch_size)
 
         else:
-            v = experiences
+            states, actions, rewards, next_states, dones = experiences
+
+
+        # Get the q values for all actions from local network
+        q_predicted_all = self.local_network(states)
+        # Get teh q value corresponding to the action executed
+        q_predicted = q_predicted_all.gather(1, actions.long())
+        # Get q values for all the actions of next state
+        q_next_predicted_all = self.local_network(next_states)
+        # Find the index of action with maximum q values (from next state)
+        max_action_index = q_next_predicted_all.detach().argmax(1)
+
+        # get q values for the actions of next state from target netwrok
+        q_next_target = self.target_network(next_states)
+        # get q value of action with same index as that of the action with maximum q values (from local network)
+        q_max_next = q_next_target.gather(1, max_action_index.unsqueeze(1))
+            # FInd target q value using Bellmann's equation
+        q_target = rewards + (self.hyperparameters["discount_rate"] * q_max_next * (1 - dones))
+
+
+        loss = self.criterion(q_predicted, q_target)
+
+        # make previous grad zero
+        self.optimizer.zero_grad()
+
+        # backward
+        loss.backward()
+
+        # update params
+        self.optimizer.step()
+
+        return loss.item()
+
+
 
 
     # def step(self):
@@ -60,6 +95,22 @@ class DDQNAgent:
             os.makedirs(directory)
 
         torch.save(self.local_network.state_dict(), '%s/model%s.pkl' % (directory, ('-' + tag)))
+
+    def pick_action(self, state, epsilon):
+        state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
+
+        # Query the network
+        action_values = self.local_network.forward(state_tensor)
+
+        if np.random.uniform() > epsilon:
+            action = action_values.max(1)[1].item()
+
+        else:
+            action = np.random.randint(0, action_values.shape[1])
+
+        return action
+
+
 
         
 
