@@ -91,8 +91,8 @@ class Network(nn.Module):
         
         self.conv_layer1 = nn.Conv2d(in_channels=1,out_channels=32,kernel_size=8,stride=4) # potential check - in_channels
         self.conv_layer2 = nn.Conv2d(in_channels=32,out_channels=64,kernel_size=4,stride=2)
-        self.conv_layer3 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=3,stride=1)
-        self.conv_layer4 = nn.Conv2d(in_channels=64,out_channels=512,kernel_size=7,stride=1)
+        self.conv_layer3 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=2,stride=1)
+        # self.conv_layer4 = nn.Conv2d(in_channels=64,out_channels=512,kernel_size=7,stride=1)
         self.lstm_layer = nn.LSTM(input_size=512,hidden_size=512,num_layers=1,batch_first=True)
         self.adv = nn.Linear(in_features=512,out_features=self.out_size)
         self.val = nn.Linear(in_features=512,out_features=1)
@@ -100,21 +100,21 @@ class Network(nn.Module):
         
     def forward(self,x,bsize,time_step,hidden_state,cell_state):
         #print(x.size())
-        x = x.view(bsize*time_step,1,self.input_size,self.input_size)
-        print(x.size())
+        x = x.view(bsize*time_step,1,90,30)
+        print("here1:", x.size())
         
         conv_out = self.conv_layer1(x)
         conv_out = self.relu(conv_out)
-        print(conv_out.size())
+        print("here2:",conv_out.size())
         conv_out = self.conv_layer2(conv_out)
         conv_out = self.relu(conv_out)
-        print(conv_out.size())
+        print("here3:",conv_out.size())
         conv_out = self.conv_layer3(conv_out)
         conv_out = self.relu(conv_out)
-        print(conv_out.size())
-        conv_out = self.conv_layer4(conv_out)
-        conv_out = self.relu(conv_out)
-        print(conv_out.size())
+        print("here4:",conv_out.size())
+        # conv_out = self.conv_layer4(conv_out)
+        # conv_out = self.relu(conv_out)
+        # print("here5:",conv_out.size())
         
         conv_out = conv_out.view(bsize,time_step,512)
         print(conv_out.size())
@@ -152,7 +152,7 @@ lstm = Network(84, 4)
 
 h, c = lstm.init_hidden_states(1)
 
-state = np.zeros([84, 84])
+state = np.zeros([90, 30])
 torch_x = torch.from_numpy(state).float()
 
 lstm.forward(torch_x, bsize = 1, time_step = 1, hidden_state = h, cell_state = c)
