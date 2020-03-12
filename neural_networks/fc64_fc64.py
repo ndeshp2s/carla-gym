@@ -1,6 +1,7 @@
+import numpy as np
 import torch
 import torch.nn as nn
-#import torch.nn.Functional as F
+from torch.nn import functional as F
 
 class NeuralNetwork(nn.Module):
 
@@ -20,8 +21,12 @@ class NeuralNetwork(nn.Module):
             fc2_units (int): Number of nodes in second hidden layer
         """
         super(NeuralNetwork, self).__init__()
+
+        self.input_features = np.prod(state_size)
+        # self.input_features = self.input_features.view(-1, self.input_features)
+        # self.output_features = action_size
        
-        self.fc1 = nn.Linear(state_size[0], fc1_units)
+        self.fc1 = nn.Linear(self.input_features, fc1_units)
         self.fc2 = nn.Linear(fc1_units, fc2_units)
         self.fc3 = nn.Linear(fc2_units, action_size)
 
@@ -31,9 +36,19 @@ class NeuralNetwork(nn.Module):
     Build a network that maps state -> action values.
     """
     def forward(self, state):
+        x = state.view(-1, self.input_features)
         
-        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
 
         return x
+
+
+# inpt1 = torch.randn([1, 30, 20, 3]) #np.zeros([self.state_y, self.state_x, self.channel])
+# model = NeuralNetwork((30, 20, 3), 4)
+
+# out = model(inpt1)
+# print(out)
+# print(out.max(1)[1].item())
+# #action_values.max(1)[1].item()
