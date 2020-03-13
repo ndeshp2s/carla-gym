@@ -24,7 +24,9 @@ class ReplayBuffer():
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(self.device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
 
-        return (states, actions, rewards, next_states, dones)
+        return experiences#(states, actions, rewards, next_states, dones)
+
+        #return experiences
 
     # def get_batch(self, batch_size = 0, sequence_length = 0):
     #     experiences = random.sample(self.memory, batch_size)
