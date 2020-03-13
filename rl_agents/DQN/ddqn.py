@@ -36,13 +36,20 @@ class DDQNAgent:
     def add(self, state, reward, action, next_state, done):
         self.memory.add_experience(state, reward, action, next_state, done)
 
-    def learn(self, batch_size = 32, experiences = None):
+    def learn(self, batch_size = 32, experiences = None, step = 0):
 
         if experiences is None:
-            states, actions, rewards, next_states, dones  = self.memory.sample(batch_size)
+            #states, actions, rewards, next_states, dones  = self.memory.sample(batch_size)
+            experiences  = self.memory.sample(batch_size)
 
-        else:
-            states, actions, rewards, next_states, dones = experiences
+        # else:
+        #     states, actions, rewards, next_states, dones = experiences
+
+        states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
+        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
+        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
+        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(self.device)
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
 
 
         # Get the q values for all actions from local network
@@ -58,7 +65,7 @@ class DDQNAgent:
         q_next_target = self.target_network(next_states)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_max_next = q_next_target.gather(1, max_action_index.unsqueeze(1))
-            # FInd target q value using Bellmann's equation
+        # Find target q value using Bellmann's equation
         q_target = rewards + (self.hyperparameters["discount_rate"] * q_max_next * (1 - dones))
 
 
@@ -73,19 +80,12 @@ class DDQNAgent:
         # update params
         self.optimizer.step()
 
+        if step % self.hyperparameters["update_every_n_steps"] == 0:
+            self.target_network.load_state_dict(self.local_network.state_dict())
+
         return loss.item()
 
 
-
-
-    # def step(self):
-
-    # def learn(self, experiences = None):
-    #     if experiences is None:
-    #         states, actions, rewards, next_states, dones = self.memory.sample()
-
-    #     else:
-    #         states, actions, rewards, next_states, dones = experiences
 
     def save_model(self, directory = None, tag = ''):
         if directory is None:
