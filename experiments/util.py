@@ -47,8 +47,6 @@ class EpsilonTracker:
         self.epsilon_decay = epsilon_decay
         self.epsilon_current = epsilon_start
 
-        print( self.epsilon_start, self.epsilon_final, self.epsilon_frames, self.epsilon_decay, self.epsilon_current)
-
     def update(self, step_number = 0):
 
         epsilon = 1.0
