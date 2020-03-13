@@ -39,7 +39,7 @@ class Trainer:
             episode_reward = 0
             state = self.env.reset()
 
-            for step_num in range(self.config.total_steps):
+            for step_num in range(self.config.steps_per_episode):
                 
                 # Select action
                 action = self.agent.pick_action(state, epsilon)
@@ -60,16 +60,17 @@ class Trainer:
                 if total_steps > self.config.pre_train_steps and total_steps % self.config.learing_frequency == 0:
                     loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"])
 
+                    self.writer.add_scalar('Loss per step', loss, total_steps)
+
 
                 if done:
                     break
 
                 # epsilon update
                 # Only after a few initial steps
-                # if total_steps > self.config.pre_train_steps:
-                #     epsilon = self.epsilon_decay.update(total_steps)
-                epsilon -= (1 - 0.1)/self.config.total_steps
-                print(epsilon)
+                if total_steps > self.config.pre_train_steps:
+                    epsilon = self.epsilon_decay.update(total_steps)
+
 
                 self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
 
