@@ -25,7 +25,7 @@ def main(args):
 
     config.hyperparameters = {
         "learning_rate": 0.1,
-        "batch_size": 2,
+        "batch_size": 1,
         "sequence_length": 1,
         "buffer_size": int(1e5),
         "update_every_n_steps": 1,
