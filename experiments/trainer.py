@@ -36,13 +36,15 @@ class Trainer:
         for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
 
             # Reset the environment and variables for new episode
+            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
             episode_reward = 0
             state = self.env.reset()
 
             for step_num in range(self.config.steps_per_episode):
                 
                 # Select action
-                action = self.agent.pick_action(state, epsilon)
+                action = self.agent.pick_action(state, hidden_state, cell_state, epsilon)
+
                 
                 # Execute step
                 next_state, reward, done = self.env.step(action)
