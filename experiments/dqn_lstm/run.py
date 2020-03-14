@@ -9,7 +9,8 @@ from gym import error, spaces
 from experiments.trainer import Trainer
 from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv                                      
 from experiments.config import Config
-from rl_agents.DQN.ddqn import DDQNAgent
+#from rl_agents.DQN.ddqn import DDQNAgent
+from rl_agents.DQN.ddqncnnlstm import DDQNCNNLSTMAgent
 
 
 
@@ -62,7 +63,8 @@ def main(args):
 
 
     # Initialize the agent
-    agent = DDQNAgent(config)
+    #agent = DDQNAgent(config)
+    agent = DDQNCNNLSTMAgent(config)
 
     if args.train:
         trainer = Trainer(env, agent, config)
