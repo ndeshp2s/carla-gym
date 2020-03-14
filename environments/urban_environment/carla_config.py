@@ -38,9 +38,9 @@ num_of_ped = 3
 HEIGHT = 1
 WIDTH = 4*num_of_ped
 N_CHANNELS = 0
-grid_height = 30
-grid_width = 20
-features = 3
+grid_height = 84
+grid_width = 84
+features = 1
 
 # Pedestrian behavior probalities
 # Four types of behaviors:
