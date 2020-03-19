@@ -17,8 +17,8 @@ except IndexError:
 import carla
 
 
-#from agents.tools.misc import get_speed
-import agents
+from agents.tools.misc import get_speed
+#import agents
 from environments.carla_gym import CarlaGym
 from environments.urban_environment import carla_config
 from utils.renderer import Renderer
@@ -223,15 +223,15 @@ class UrbanEnv(CarlaGym):
 
 
     def close(self):
-        if carla_config.rgb_sensor:
-            self.rgb_sensor.destroy()
-        if carla_config.sem_sensor:
-            self.semantic_sensor.destroy()
-        if self.ego_vehicle is not None:
-            self.ego_vehicle.destroy()
+        # if carla_config.rgb_sensor:
+        #     self.rgb_sensor.destroy()
+        # if carla_config.sem_sensor:
+        #     self.semantic_sensor.destroy()
+        # if self.ego_vehicle is not None:
+        #     self.ego_vehicle.destroy()
             
-        if self.renderer is not None:
-            self.renderer.close()
+        # if self.renderer is not None:
+        #     self.renderer.close()
         self.kill_processes()
         
 
