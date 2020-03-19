@@ -10,6 +10,7 @@ from experiments.trainer import Trainer
 from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv                                      
 from experiments.config import Config
 from rl_agents.DQN.ddqn import DDQNAgent
+from environments.urban_environment.spawner import Spawner
 
 
 
@@ -40,7 +41,7 @@ def main(args):
     config.use_cuda = True
 
     config.number_of_episodes = 10
-    config.steps_per_episode = 100
+    config.steps_per_episode = 10000
     config.previous_episode = 0
     config.total_steps = 160000
     config.pre_train_steps = 1
@@ -64,8 +65,11 @@ def main(args):
     # Initialize the agent
     agent = DDQNAgent(config)
 
+    # Initialize spawner
+    spawner = Spawner()
+
     if args.train:
-        trainer = Trainer(env, agent, config)
+        trainer = Trainer(env, agent, spawner, config)
 
         try:
             trainer.train()
