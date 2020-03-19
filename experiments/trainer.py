@@ -7,7 +7,7 @@ from experiments.util import EpsilonTracker
 
 
 class Trainer:
-    def __init__(self, env, agent, config: Config):
+    def __init__(self, env, agent, spawner, config: Config):
         self.env = env
         self.agent = agent
         self.config = config
@@ -24,6 +24,8 @@ class Trainer:
 
         self.start_learning = False
 
+        self.spawner = spawner
+
     def train(self, previous_episode = 0):
         losses = []
         rewards = []
@@ -38,12 +40,15 @@ class Trainer:
             # Reset the environment and variables for new episode
             episode_reward = 0
             state = self.env.reset()
+            self.spawner.reset()
 
             for step_num in range(self.config.steps_per_episode):
                 
                 # Select action
                 action = self.agent.pick_action(state, epsilon)
 
+                # Execute spwner step
+                self.spawner.run_step()
                 
                 # Execute step
                 next_state, reward, done = self.env.step(action)
@@ -77,31 +82,31 @@ class Trainer:
 
 
 
-            # Print details of the episode
-            print("------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f" % (ep_num, episode_reward, loss))
-            print("------------------------------------------------")
+            # # Print details of the episode
+            # print("------------------------------------------------")
+            # print("Episode: %d, Reward: %5f, Loss: %4f" % (ep_num, episode_reward, loss))
+            # print("------------------------------------------------")
 
-            # Save episode reward and loss
-            self.writer.add_scalar('Reward per episode', episode_reward, ep_num)
+            # # Save episode reward and loss
+            # self.writer.add_scalar('Reward per episode', episode_reward, ep_num)
 
-            # Save weights
-            self.agent.save_model(self.config.model_dir)
+            # # Save weights
+            # self.agent.save_model(self.config.model_dir)
 
-            # Save checkpoints
-            if not os.path.isdir(self.config.checkpoint_dir):
-                os.makedirs(self.config.checkpoint_dir)
+            # # Save checkpoints
+            # if not os.path.isdir(self.config.checkpoint_dir):
+            #     os.makedirs(self.config.checkpoint_dir)
 
-            if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
-                checkpoint = {'state_dict': self.agent.local_network.state_dict(),
-                            'optimizer': self.agent.optimizer.state_dict(),
-                            'episode': ep_num,
-                            'epsilon': epsilon,
-                            'total_steps': total_steps}
-                torch.save(checkpoint, self.config.checkpoint_dir + '/model_and_parameters.pth')
-            
             # if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
-            #     self.agent.save_checkpoint()
+            #     checkpoint = {'state_dict': self.agent.local_network.state_dict(),
+            #                 'optimizer': self.agent.optimizer.state_dict(),
+            #                 'episode': ep_num,
+            #                 'epsilon': epsilon,
+            #                 'total_steps': total_steps}
+            #     torch.save(checkpoint, self.config.checkpoint_dir + '/model_and_parameters.pth')
+            
+            # # if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
+            # #     self.agent.save_checkpoint()
 
 
 
