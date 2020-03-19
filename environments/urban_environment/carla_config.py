@@ -1,13 +1,13 @@
-town = "Town01"
-sp_x = 220.0
-sp_y = 129.5
-sp_z = 0.1
+town = "Town11"
+sp_x = 24.0
+sp_y = -2.0
+sp_z = 0.2
 sp_yaw = 180.0
 sp_pitch = 0.0
 sp_roll = 0.0
 
-eg_bp = 'vehicle.audi.etron'
-eg_name = 'hero'
+ev_bp = 'vehicle.audi.etron'
+ev_name = 'hero'
 
 # Sensors
 rgb_sensor = True
@@ -50,3 +50,13 @@ features = 1
 ## standing on road (group of people standing on road side)
 ## pedestrian walking on road
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
+
+# Spawner related
+num_of_ped = 1
+num_of_veh = 0
+percentage_pedestrians_crossing = 0.5
+percentage_pedestrians_crossing_illegal = 0.5
+ped_spawn_min_dist = -10.0
+ped_spawn_max_dist = 50.0
+ped_max_dist = 70.0
+ped_min_dist = -5.0
