@@ -56,6 +56,7 @@ class CarlaGym(gym.Env):
     def open_server(self, display = True, rendering = True, town = "Town01", synchronous = True):
         p = None
         cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
+        print(cmd)
 
         if not display:
             env_ =  {**os.environ, 'DISPLAY': ''}
@@ -63,6 +64,7 @@ class CarlaGym(gym.Env):
             p = subprocess.Popen(cmd, env=env_)
 
         else:
+            cmd.append(" -opengl")
             p = subprocess.Popen(cmd)
 
         
@@ -71,7 +73,7 @@ class CarlaGym(gym.Env):
                 client = carla.Client('localhost', 2000, 10)
 
                 if client.get_world().get_map().name != town:
-                    carla.Client('localhost', 2000, 100).load_world(self.town)
+                    carla.Client('localhost', 2000, 10).load_world(self.town)
                     while True:
                         try:
                             while carla.Client('localhost', 2000, 10).get_world().get_map().name != town:
