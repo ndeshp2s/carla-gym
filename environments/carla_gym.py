@@ -53,7 +53,7 @@ class CarlaGym(gym.Env):
             psutil.wait_procs(still_alive)
 
 
-    def open_server(self, display = True, rendering = True, town = "Town01", synchronous = True):
+    def open_server(self, display = True, rendering = True, town = "Town11", synchronous = True):
         p = None
         cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
         print(cmd)
