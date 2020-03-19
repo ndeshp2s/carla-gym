@@ -18,7 +18,6 @@ import carla
 
 
 from agents.tools.misc import get_speed
-#import agents
 from environments.carla_gym import CarlaGym
 from environments.urban_environment import carla_config
 from utils.renderer import Renderer
@@ -75,8 +74,8 @@ class UrbanEnv(CarlaGym):
 
 
     def _get_observation(self):
-        o = np.zeros([self.state_y, self.state_x, self.channel])
-        return o
+        tensor = np.zeros([self.state_y, self.state_x, self.channel])
+        return tensor
 
 
     def _get_reward(self):
@@ -162,8 +161,8 @@ class UrbanEnv(CarlaGym):
         # Spawn ego vehicle
         sp = carla.Transform(carla.Location(x=carla_config.sp_x, y=carla_config.sp_y, z=carla_config.sp_z), 
                              carla.Rotation(yaw=carla_config.sp_yaw))
-        bp = random.choice(self.world.get_blueprint_library().filter(carla_config.eg_bp))
-        bp.set_attribute('role_name', carla_config.eg_name)
+        bp = random.choice(self.world.get_blueprint_library().filter(carla_config.ev_bp))
+        bp.set_attribute('role_name', carla_config.ev_name)
         self.ego_vehicle = self.spawn_ego_vehicle(bp, sp)
 
         # Add sensors to ego vehicle
@@ -223,15 +222,15 @@ class UrbanEnv(CarlaGym):
 
 
     def close(self):
-        # if carla_config.rgb_sensor:
-        #     self.rgb_sensor.destroy()
-        # if carla_config.sem_sensor:
-        #     self.semantic_sensor.destroy()
-        # if self.ego_vehicle is not None:
-        #     self.ego_vehicle.destroy()
+        if carla_config.rgb_sensor:
+            self.rgb_sensor.destroy()
+        if carla_config.sem_sensor:
+            self.semantic_sensor.destroy()
+        if self.ego_vehicle is not None:
+            self.ego_vehicle.destroy()
             
-        # if self.renderer is not None:
-        #     self.renderer.close()
+        if self.renderer is not None:
+            self.renderer.close()
         self.kill_processes()
         
 
