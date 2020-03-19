@@ -21,10 +21,10 @@ rgb_loc_z = 2.0
 sem_sensor = False
 
 # Display related
-display = False
+display = True
 
 # Rendering related
-render = False
+render = True
 screen_x = 720
 screen_y = 720
 
