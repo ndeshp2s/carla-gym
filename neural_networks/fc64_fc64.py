@@ -10,7 +10,7 @@ class NeuralNetwork(nn.Module):
     Initialize neural network model 
     Initialize parameters and build model.
     """
-    def __init__(self, state_size, action_size, fc1_units=64, fc2_units=64):
+    def __init__(self, state_size, action_size, fc1_units=1024, fc2_units=512, fc3_units=512):
         """
         Params
         ======
@@ -28,7 +28,8 @@ class NeuralNetwork(nn.Module):
        
         self.fc1 = nn.Linear(self.input_features, fc1_units)
         self.fc2 = nn.Linear(fc1_units, fc2_units)
-        self.fc3 = nn.Linear(fc2_units, action_size)
+        self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.fc4 = nn.Linear(fc3_units, action_size)
 
 
     """
@@ -40,7 +41,8 @@ class NeuralNetwork(nn.Module):
         
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
 
         return x
 
