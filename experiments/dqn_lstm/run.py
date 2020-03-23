@@ -25,26 +25,26 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.1,
-        "batch_size": 1,
+        "learning_rate": 0.025,
+        "batch_size": 32,
         "sequence_length": 1,
         "buffer_size": int(1e5),
         "update_every_n_steps": 1,
         "min_steps_before_learning": 1000,
         "epsilon_start": 1,
-        "epsilon_end": 0.01,
-        "epsilon_decay": 1000,
+        "epsilon_end": 0.1,
+        "epsilon_decay": 0.995,
         "discount_rate": 0.99,
         "tau": 0.01,
     }
     
     config.use_cuda = True
 
-    config.number_of_episodes = 10
-    config.steps_per_episode = 10000
+    config.number_of_episodes = 1000
+    config.steps_per_episode = 500
     config.previous_episode = 0
     config.total_steps = 160000
-    config.pre_train_steps = 1
+    config.pre_train_steps = 100
     config.learing_frequency = 1
 
     config.checkpoint = True
