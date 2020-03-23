@@ -56,7 +56,6 @@ class CarlaGym(gym.Env):
     def open_server(self, display = True, rendering = True, town = "Town11", synchronous = True):
         p = None
         cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
-        print(cmd)
 
         if not display:
             env_ =  {**os.environ, 'DISPLAY': ''}
@@ -99,6 +98,7 @@ class CarlaGym(gym.Env):
         # open client
         self.client = carla.Client('localhost', 2000, 10)
         self.world = self.client.get_world()
+        
 
 
     def apply_settings(self, fps = 10.0, rendering = True):
