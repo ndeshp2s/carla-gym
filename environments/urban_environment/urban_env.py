@@ -39,8 +39,8 @@ class UrbanEnv(CarlaGym):
         self.channel = carla_config.features
 
         # Sensors
-        self.rgb_sensor = carla_config.rgb_sensor
-        self.sem_sensor = carla_config.sem_sensor
+        self.rgb_sensor = None
+        self.semantic_sensor = None
 
         # Planners
         self.planner = None
@@ -48,6 +48,8 @@ class UrbanEnv(CarlaGym):
         # States and actions
         self.observation_space = spaces.Box(low = 0, high = 255, shape = (carla_config.grid_height, carla_config.grid_width, carla_config.features), dtype = np.uint8)
         self.action_space = spaces.Discrete(carla_config.N_DISCRETE_ACTIONS)
+
+        self.ego_vehicle = None
 
         
         # Rendering related
@@ -317,12 +319,14 @@ class UrbanEnv(CarlaGym):
 
 
     def close(self):
-        if carla_config.rgb_sensor:
+        #if carla_config.rgb_sensor:
+        if self.rgb_sensor is not None:
             self.rgb_sensor.destroy()
-        if carla_config.sem_sensor:
+        #if carla_config.sem_sensor:
+        if self.semantic_sensor is not None:
             self.semantic_sensor.destroy()
-        if self.ego_vehicle is not None:
-            self.ego_vehicle.destroy()
+        # if self.ego_vehicle is not None:
+        #     self.ego_vehicle.destroy()
             
         if self.renderer is not None:
             self.renderer.close()

@@ -86,7 +86,8 @@ def main(args):
         if args.checkpoint_file is None:
             print(' ---------- Please mention checkoutpoint file name ----------')
             return
-        trainer = Trainer(env, agent, config)
+        
+        trainer = Trainer(env, agent, spawner, config)
         trainer.load_checkpoint(args.checkpoint_file)
 
         try:
@@ -101,7 +102,19 @@ def main(args):
                 os._exit(0)
 
     elif args.test:
-        None
+        tester = Tester(episodes, steps)
+        tester.load_checkpoint(args.checkpoint_file)
+
+        try:
+            tester.retrain()
+
+        except KeyboardInterrupt:
+            try:
+                tester.close()
+                sys.exit(0)
+            except SystemExit:
+                tester.close()
+                os._exit(0)
 
 
 if __name__ == '__main__':
