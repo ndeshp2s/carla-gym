@@ -66,8 +66,8 @@ ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] #
 # Spawner related
 num_of_ped = 10
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.0
-percentage_pedestrians_crossing_illegal = 1.0
+percentage_pedestrians_crossing = 0.5
+percentage_pedestrians_crossing_illegal = 0.5
 ped_spawn_min_dist = -10.0
 ped_spawn_max_dist = 50.0
 ped_max_dist = 60.0
