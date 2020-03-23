@@ -158,12 +158,7 @@ class Spawner(object):
 
                 self.pedestrian_list.remove(p)
                 
-
                 
-
-
-
-
     def get_ev_trans(self):
 
         ev = self.get_ev()
@@ -173,7 +168,9 @@ class Spawner(object):
 
         return None
 
+
     def get_ev(self):
+
         actors = self.world.get_actors().filter(carla_config.ev_bp)
 
         if actors is not None:
@@ -218,6 +215,7 @@ class Spawner(object):
 
 
     def destroy_all(self):
+
         world = self.client.get_world()
         if world is not None:
             actor_list = world.get_actors()
