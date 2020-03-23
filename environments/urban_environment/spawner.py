@@ -15,6 +15,7 @@ except IndexError:
 import carla
 
 from environments.urban_environment import carla_config
+from environments.urban_environment.walker_spawn_points import *
 
 
 class Spawner(object):
@@ -30,9 +31,13 @@ class Spawner(object):
 
         self.pedestrian_list = []
 
+        self.pedestrian_ids = [0 for i in range(carla_config.num_of_ped)]
+
 
     def reset(self):
         self.connect_to_server()
+        self.pedestrian_list = []
+        self.pedestrian_ids = [0 for i in range(carla_config.num_of_ped)]
 
 
     def connect_to_server(self):
@@ -58,6 +63,7 @@ class Spawner(object):
 
         self.controller_turnon()
 
+        #while len(self.pedestrian_list) <  self.num_of_ped:
         self.spawn_pedestrian(ev_trans)
         
         self.check_pedestrian_distance(ev_trans)
@@ -75,13 +81,17 @@ class Spawner(object):
 
         # Add pedestrian
         ped_bp = random.choice(self.world.get_blueprint_library().filter("walker.pedestrian.*"))
+        ped_id = next((index for index, value in enumerate(self.pedestrian_ids) if value == 0), None)
+        ped_bp.set_attribute('role_name', str(ped_id + 1))
 
         ped = None
         spawn_point = carla.Transform()
 
         n = 0
-        while n < 5:
-            loc = self.world.get_random_location_from_navigation()
+        while n < 100:
+            spawn_point = random.choice(walker_spawn_points)
+            loc = spawn_point.location
+            #loc = carla.Location(x = 18.0, y = 5.0, z = 1)
             if self.is_within_distance(loc, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_spawn_max_dist, carla_config.ped_spawn_min_dist):
                 spawn_point.location = loc
                 ped = self.world.try_spawn_actor(ped_bp, spawn_point)
@@ -90,6 +100,7 @@ class Spawner(object):
             n  = n + 1
 
         if ped is not None:
+            self.pedestrian_ids[ped_id] = 1
             self.pedestrian_list.append({"id": ped.id, "controller": None})
 
 
@@ -103,7 +114,8 @@ class Spawner(object):
                 controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to = ped)
                 controller.start()
                 controller.go_to_location(self.world.get_random_location_from_navigation())
-                controller.set_max_speed(float(5.0))
+                #controller.go_to_location(carla.Location(x = 18.0, y = -5.2, z = 0.3))
+                controller.set_max_speed(float(1.0))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
@@ -115,12 +127,12 @@ class Spawner(object):
             return
 
         for p in self.pedestrian_list:
-            if p["controller"] is None:
-                return
+
             ped = self.world.get_actor(p["id"])
+            if ped is None:
+                continue
+
             ped_trans = ped.get_transform()
-            # print(ped_trans)
-            # print(ev_trans)
 
             tar_vec = np.array([ev_trans.location.x -ped_trans.location.x, ev_trans.location.y - ped_trans.location.y])
             norm = np.linalg.norm(tar_vec)
@@ -132,19 +144,23 @@ class Spawner(object):
 
             #if norm > 50.0 or norm < -5.0:
             if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist):
-                print(norm, d_ang)
-                if p["controller"] is None:
-                    return
-                controller = self.world.get_actor(p["controller"])
-                if controller is not None:
-                    controller.stop()
-                    controller.destroy()
+                
+                if p["controller"] is not None:
+                    controller = self.world.get_actor(p["controller"])
+                    if controller is not None:
+                        controller.stop()
+                        controller.destroy()
 
-                ped = self.world.get_actor(p["id"])
-                if ped is not None:
-                    ped.destroy()
+                ped_id = int(ped.attributes['role_name'])
+                self.pedestrian_ids[ped_id - 1] = 0
+
+                ped.destroy()
 
                 self.pedestrian_list.remove(p)
+                
+
+                
+
 
 
 
@@ -208,6 +224,8 @@ class Spawner(object):
 
             for a in actor_list.filter("walker.pedestrian.*"):
                 a.destroy()
+
+
 
 
     def is_within_distance(self, tar_loc, cur_loc, rot, max_dist, min_dist, spawn = True):
