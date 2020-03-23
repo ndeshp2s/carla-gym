@@ -40,7 +40,7 @@ def main(args):
     
     config.use_cuda = True
 
-    config.number_of_episodes = 1000
+    config.number_of_episodes = 500
     config.steps_per_episode = 500
     config.previous_episode = 0
     config.total_steps = 160000

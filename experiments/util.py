@@ -60,7 +60,7 @@ class EpsilonTracker:
         if step_number == 0:
             #self.epsilon_current *= self.epsilon_decay 
             #epsilon = max(self.epsilon_final, self.epsilon_current)
-            self.epsilon_current -= (self.epsilon_start - self.epsilon_final)/10000
+            self.epsilon_current -= (self.epsilon_start - self.epsilon_final)/self.total_episodes
             epsilon = max(self.epsilon_final, self.epsilon_current)
         
         else:
