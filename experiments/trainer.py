@@ -59,7 +59,7 @@ class Trainer:
 
                 
                 # Execute step
-                next_state, reward, done = self.env.step('0')
+                next_state, reward, done = self.env.step(action)
 
                 # Add experience to memory of local network
                 self.agent.add(state, action, reward, next_state, done)
@@ -129,10 +129,10 @@ class Trainer:
     def load_checkpoint(self, file = None, checkpoint_dir = None):
         checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
 
-        # Load netwrok weights and biases
-        self.agent.local_network = checkpoint['model_state_dict']
-        self.agent.target_network = checkpoint['model_state_dict']
-        self.agent.optimizer = checkpoint['optimizer_state_dict']
+        # Load network weights and biases
+        self.agent.local_network.load_state_dict(checkpoint['state_dict'])
+        self.agent.target_network.load_state_dict(checkpoint['state_dict'])
+        self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
         self.previous_episode = checkpoint['episode']
         self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
 
