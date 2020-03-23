@@ -3,6 +3,8 @@ import glob
 import os
 import random
 import numpy as np
+import math
+import transforms3d
 
 import gym
 from gym import spaces
@@ -17,11 +19,13 @@ except IndexError:
 import carla
 
 
-from agents.tools.misc import get_speed
+from agents.tools.misc import get_speed, is_within_distance_ahead, distance_vehicle
 from environments.carla_gym import CarlaGym
 from environments.urban_environment import carla_config
+from environments.urban_environment.crosswalk_zones import within_crosswalk
 from utils.renderer import Renderer
 from utils.planner import Planner
+
 
 class UrbanEnv(CarlaGym):
     """docstring for ClassName"""
@@ -42,7 +46,7 @@ class UrbanEnv(CarlaGym):
         self.planner = None
 
         # States and actions
-        self.observation_space = spaces.Box(low=0, high=255, shape=(carla_config.grid_height, carla_config.grid_width, carla_config.features), dtype=np.uint8)
+        self.observation_space = spaces.Box(low = 0, high = 255, shape = (carla_config.grid_height, carla_config.grid_width, carla_config.features), dtype = np.uint8)
         self.action_space = spaces.Discrete(carla_config.N_DISCRETE_ACTIONS)
 
         
@@ -75,6 +79,70 @@ class UrbanEnv(CarlaGym):
 
     def _get_observation(self):
         tensor = np.zeros([self.state_y, self.state_x, self.channel])
+
+        # Fill ego vehicle information
+        ev_trans = self.ego_vehicle.get_transform()
+        
+        for i in range(-1, 2):
+            for j in range(0, 2):
+                x_discrete, status = self.get_index(i, carla_config.x_min, carla_config.x_max, carla_config.x_size)
+                y_discrete, status = self.get_index(j, carla_config.y_min, carla_config.y_max, carla_config.y_size)
+
+                x_discrete = np.argmax(x_discrete)
+                y_discrete = np.argmax(y_discrete)
+                
+                tensor[x_discrete, y_discrete, :] = [0.01]
+        
+
+        # Fill pedestrian information
+        peds = self.world.get_actors().filter('walker.pedestrian.*')
+        for p in peds:
+            p_trans = p.get_transform()
+            #print(p_trans.rotation.yaw - ev_trans.rotation.yaw)
+            
+            p_xyz = np.array([p_trans.location.x, p_trans.location.y, p_trans.location.z])
+            ev_xyz =  np.array([ev_trans.location.x, ev_trans.location.y, ev_trans.location.z])
+            ped_loc = p_xyz - ev_xyz
+
+            pitch = math.radians(ev_trans.rotation.pitch)
+            roll = math.radians(ev_trans.rotation.roll)
+            yaw = math.radians(ev_trans.rotation.yaw)
+            R = transforms3d.euler.euler2mat(roll, pitch, yaw).T
+            ped_loc_relative = np.dot(R, ped_loc)
+
+            x_discrete, status_x = self.get_index(ped_loc_relative[0], carla_config.x_min, carla_config.x_max, carla_config.x_size)
+            y_discrete, status_y = self.get_index(ped_loc_relative[1], carla_config.y_min, carla_config.y_max, carla_config.y_size)
+
+
+            if status_x and status_y:
+                x_discrete = np.argmax(x_discrete)
+                y_discrete = np.argmax(y_discrete)
+
+                # Get pdestrian id
+                p_id = int(p.attributes['role_name'])
+
+                # Get pedestrian relative orientation
+                p_heading = p_trans.rotation.yaw - ev_trans.rotation.yaw
+
+                # Get pedestrian lane type
+                ped_lane = None
+                waypoint = self.world.get_map().get_waypoint(p_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
+                if waypoint.lane_type == carla.LaneType.Driving:
+                    ped_lane = 1
+                elif waypoint.lane_type == carla.LaneType.Sidewalk or waypoint.lane_type == carla.LaneType.Shoulder:
+                    ped_lane = 2
+
+                if within_crosswalk(p_trans.location.x, p_trans.location.y):
+                    ped_lane = 3
+
+
+                tensor[x_discrete, y_discrete,:] = [self.normalize_data(p_id, 0.0, carla_config.num_of_ped), 
+                                                    self.normalize_data(p_heading, 0.0, 360.0),       
+                                                    self.normalize_data(ped_lane, 0.0, 3)]
+                                                    # ped id, ped relative orientation and region occupied.
+
+                #print(tensor[x_discrete, y_discrete, :])
+        
         return tensor
 
 
@@ -84,7 +152,7 @@ class UrbanEnv(CarlaGym):
 
         total_reward = d_reward = nc_reward = c_reward = 0
 
-        # # Reward for speed 
+        # Reward for speed 
         # ev_speed = get_speed(self.ego_vehicle)
 
         # if ev_speed > 0.0 and ev_speed <=50:
@@ -95,6 +163,26 @@ class UrbanEnv(CarlaGym):
 
         # elif ev_speed <= 0.0:
         #     d_reward = -2
+
+        ## Reward(penalty) for collision
+        pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
+        collision, near_collision, pedestrian = self.is_collision(pedestrian_list)
+
+        if collision is True:
+            #print('collision')
+            c_reward = -10
+            done = True
+
+        elif near_collision is True:
+            #print('near collision')
+            nc_reward = -5
+
+        # Check if goal reached
+        ev_trans = self.ego_vehicle.get_transform()
+
+        d = self.distance(ev_trans, carla.Transform(carla.Location(x = carla_config.ev_goal_x, y = carla_config.ev_goal_y, z = carla_config.ev_goal_z)))
+        if d < 6:
+            done = True
 
 
         total_reward = d_reward + nc_reward + c_reward
@@ -110,7 +198,7 @@ class UrbanEnv(CarlaGym):
 
         if action == '0': # speed tracking 
 
-            self.planner.local_planner.set_speed(25.0)
+            self.planner.local_planner.set_speed(20.0)
             control = self.planner.run_step()
             control.brake = 0.0
             self.ego_vehicle.apply_control(control)
@@ -152,6 +240,12 @@ class UrbanEnv(CarlaGym):
 
         self.apply_settings(rendering = carla_config.render)
 
+        self.world.get_map().generate_waypoints(1.0)
+
+        # Run some initial steps
+        for i in range(20):
+            self.step('2')
+
         state = self._get_observation()
 
         return state
@@ -159,8 +253,8 @@ class UrbanEnv(CarlaGym):
 
     def initialize_ego_vehicle(self):
         # Spawn ego vehicle
-        sp = carla.Transform(carla.Location(x=carla_config.sp_x, y=carla_config.sp_y, z=carla_config.sp_z), 
-                             carla.Rotation(yaw=carla_config.sp_yaw))
+        sp = carla.Transform(carla.Location(x = carla_config.sp_x, y = carla_config.sp_y, z = carla_config.sp_z), 
+                             carla.Rotation(yaw = carla_config.sp_yaw))
         bp = random.choice(self.world.get_blueprint_library().filter(carla_config.ev_bp))
         bp.set_attribute('role_name', carla_config.ev_name)
         self.ego_vehicle = self.spawn_ego_vehicle(bp, sp)
@@ -172,7 +266,7 @@ class UrbanEnv(CarlaGym):
             rgb_bp.set_attribute('image_size_x', carla_config.rgb_size_x)
             rgb_bp.set_attribute('image_size_y', carla_config.rgb_size_y)
             rgb_bp.set_attribute('fov', carla_config.rgb_fov)
-            transform = carla.Transform(carla.Location(x=carla_config.rgb_loc_x, z=carla_config.rgb_loc_z))
+            transform = carla.Transform(carla.Location(x = carla_config.rgb_loc_x, z = carla_config.rgb_loc_z))
             self.rgb_sensor = self.world.spawn_actor(rgb_bp, transform, attach_to = self.ego_vehicle)
             self.rgb_sensor.listen(self.rgb_sensor_callback)
             self.rgb_image = None
@@ -183,16 +277,16 @@ class UrbanEnv(CarlaGym):
             sem_bp.set_attribute('image_size_x', carla_config.rgb_size_x)
             sem_bp.set_attribute('image_size_y', carla_config.rgb_size_y)
             sem_bp.set_attribute('fov', carla_config.rgb_fov)
-            trnasform = carla.Transform(carla.Location(x=carla_config.rgb_loc_x, z=carla_config.rgb_loc_z))
-            self.semantic_sensor = self.world.spawn_actor(sem_bp, trnasform, attach_to=self.ego_vehicle)
+            trnasform = carla.Transform(carla.Location(x = carla_config.rgb_loc_x, z = carla_config.rgb_loc_z))
+            self.semantic_sensor = self.world.spawn_actor(sem_bp, trnasform, attach_to = self.ego_vehicle)
             self.semantic_sensor.listen(self.semantic_sensor_callback)
             self.semantic_image = None
 
         # Initialize the planner
         self.planner = Planner()
         self.planner.initialize(self.ego_vehicle)
-        spawn_point = self.world.get_map().get_spawn_points()[0] #
-        self.planner.set_destination((spawn_point.location.x, spawn_point.location.y, spawn_point.location.z))
+        self.planner.set_destination((carla_config.ev_goal_x, carla_config.ev_goal_y, carla_config.ev_goal_z))
+
 
     def spawn_ego_vehicle(self, bp = None, sp = None):
 
@@ -212,9 +306,10 @@ class UrbanEnv(CarlaGym):
         array = array[:, :, :3]
         self.rgb_image = array
 
+
     def semantic_sensor_callback(self, image):
         image.convert(cc.CityScapesPalette)
-        array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
+        array = np.frombuffer(image.raw_data, dtype = np.dtype("uint8"))
         array = np.reshape(array, (image.height, image.width, 4))
         array = array[:, :, :3]
         array = array[:, :, ::-1]
@@ -234,13 +329,13 @@ class UrbanEnv(CarlaGym):
         self.kill_processes()
         
 
-
     def init_renderer(self):
         self.no_of_cam = 0
         if self.rgb_sensor: self.no_of_cam += 1
         if self.sem_sensor: self.no_of_cam += 1
 
-        self.renderer.create_screen(carla_config.screen_x, carla_config.screen_y*self.no_of_cam)
+        self.renderer.create_screen(carla_config.screen_x, carla_config.screen_y * self.no_of_cam)
+
 
     def render(self):
         if self.renderer is None or not (self.is_render_enabled):
@@ -249,9 +344,66 @@ class UrbanEnv(CarlaGym):
         img =  self.get_rendered_image()
         self.renderer.render_image(img)
 
+
     def get_rendered_image(self):
         temp = []
         if self.rgb_sensor: temp.append(self.rgb_image)
         if self.sem_sensor: temp.append(self.semantic_image)
 
         return np.vstack(img for img in temp)
+
+
+    def get_index(self, val, start, stop, num):
+
+        grids = np.linspace(start, stop, num)
+        features = np.zeros(num)
+
+        #Check extremes
+        if val <= grids[0] or val > grids[-1]:
+            return features, False
+
+        for i in range(len(grids) - 1):
+            if val >= grids[i] and val < grids[i + 1]:
+                features[i] = 1
+
+        return features, True
+
+
+    def normalize_data(self, data, min_val, max_val):
+        return (data - min_val)/(max_val - min_val)
+
+
+
+
+    def is_collision(self, entity_list):
+
+        ego_vehicle_location = self.ego_vehicle.get_transform().location
+        ego_vehicle_waypoint = self.world.get_map().get_waypoint(ego_vehicle_location)
+
+
+        for target in entity_list:
+
+            # if the object is not in our lane it's not an obstacle
+            target_waypoint = self.world.get_map().get_waypoint(target.get_location(), project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
+
+            if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
+                    target_waypoint.lane_id == ego_vehicle_waypoint.lane_id and \
+                    target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
+                
+                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 3.0):
+                    return (True, True, target)
+
+            if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
+                    target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
+                
+                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 10.0):
+                    return (False, True, target)
+
+        return (False, False, None)
+
+
+    def distance(self, source_transform, destination_transform):
+        dx = source_transform.location.x - destination_transform.location.x
+        dy = source_transform.location.y - destination_transform.location.y
+
+        return math.sqrt(dx * dx + dy * dy)
