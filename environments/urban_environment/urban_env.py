@@ -335,8 +335,8 @@ class UrbanEnv(CarlaGym):
 
     def init_renderer(self):
         self.no_of_cam = 0
-        if self.rgb_sensor: self.no_of_cam += 1
-        if self.sem_sensor: self.no_of_cam += 1
+        if carla_config.rgb_sensor: self.no_of_cam += 1
+        if carla_config.sem_sensor: self.no_of_cam += 1
 
         self.renderer.create_screen(carla_config.screen_x, carla_config.screen_y * self.no_of_cam)
 
@@ -351,8 +351,8 @@ class UrbanEnv(CarlaGym):
 
     def get_rendered_image(self):
         temp = []
-        if self.rgb_sensor: temp.append(self.rgb_image)
-        if self.sem_sensor: temp.append(self.semantic_image)
+        if carla_config.rgb_sensor: temp.append(self.rgb_image)
+        if carla_config.sem_sensor: temp.append(self.semantic_image)
 
         return np.vstack(img for img in temp)
 
@@ -411,3 +411,7 @@ class UrbanEnv(CarlaGym):
         dy = source_transform.location.y - destination_transform.location.y
 
         return math.sqrt(dx * dx + dy * dy)
+
+
+    def get_ego_speed(self):
+        return get_speed(self.ego_vehicle)
