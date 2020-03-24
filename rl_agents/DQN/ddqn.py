@@ -78,7 +78,7 @@ class DDQNAgent:
         loss.backward()
 
         # Gradient clipping
-        for param in self.local_network.parameters();
+        for param in self.local_network.parameters():
             param.grad.data.clamp_(-1, 1)
 
         # update params
