@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from experiments.config import Config
 from rl_agents.DQN.replay_buffer import ReplayBuffer
-from neural_networks.fc64_fc64 import NeuralNetwork
+from neural_networks.fc32_fc32 import NeuralNetwork
 
 class DDQNAgent:
     def __init__(self, config: Config):
