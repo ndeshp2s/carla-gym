@@ -1,6 +1,7 @@
 import os
 import torch
 from torch.utils.tensorboard import SummaryWriter
+import math
 
 from experiments.config import Config
 from experiments.util import EpsilonTracker, DataVisualization
@@ -28,7 +29,7 @@ class Trainer:
 
         self.start_learning = False
 
-        self.spawner = spawner
+        #self.spawner = spawner
 
 
     def train(self, previous_episode = 0):
@@ -47,19 +48,16 @@ class Trainer:
             # Reset the environment and variables for new episode
             episode_reward = 0
             state = self.env.reset()
-            self.spawner.reset()
+            #self.spawner.reset()
 
             for step_num in range(self.config.steps_per_episode):
-                #data_vis.display(state)
-                if DEBUG:
-                    input('Enter to continue: ')
                 
                 # Select action
                 action = self.agent.pick_action(state, epsilon)
 
                 
                 # Execute step
-                next_state, reward, done = self.env.step(action)
+                next_state, reward, done = self.env.step(0)
 
                 # Add experience to memory of local network
                 self.agent.add(state, action, reward, next_state, done)
@@ -70,7 +68,7 @@ class Trainer:
                 total_steps += 1
 
                 # Execute spwner step
-                self.spawner.run_step()
+                #self.spawner.run_step()
 
 
                 # Performing learning if minumum required experiences gathered
@@ -89,7 +87,9 @@ class Trainer:
                 # Only after a few initial steps
                 if total_steps > self.config.pre_train_steps:
                     #epsilon = self.epsilon_decay.update(total_steps)
-                    epsilon = self.epsilon_decay.update()
+                    #epsilon = self.epsilon_decay.update()
+                    epsilon = 0.1 + (1.0 - 0.1) * math.exp(-1. * (total_steps - self.config.pre_train_steps) / (self.config.number_of_episodes*self.config.steps_per_episode))
+
 
                 self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
 
