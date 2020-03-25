@@ -25,11 +25,11 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.025,
+        "learning_rate": 0.001,
         "batch_size": 32,
         "sequence_length": 1,
         "buffer_size": int(1e5),
-        "update_every_n_steps": 1,
+        "update_every_n_steps": 2,
         "min_steps_before_learning": 1000,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
@@ -58,9 +58,8 @@ def main(args):
 
     # Initialize the environment
     env = gym.make('Urban-v0')
-    config.state_dim = env.observation_space.shape
+    config.state_dim = env.observation_space.shape[0]
     config.action_dim = env.action_space.n
-
 
     # Initialize the agent
     agent = DDQNAgent(config)
