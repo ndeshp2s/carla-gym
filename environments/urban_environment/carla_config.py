@@ -1,6 +1,6 @@
 town = "Town11"
-sp_x = 24.0
-sp_y = -2.0
+sp_x = 44.0
+sp_y = -1.8
 sp_z = 0.2
 sp_yaw = 180.0
 sp_pitch = 0.0
@@ -25,10 +25,10 @@ rgb_loc_z = 2.0
 sem_sensor = False
 
 # Display related
-display = False
+display = True
 
 # Rendering related
-render = False
+render = True
 screen_x = 720
 screen_y = 720
 
