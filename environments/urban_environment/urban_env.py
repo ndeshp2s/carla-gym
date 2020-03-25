@@ -50,6 +50,7 @@ class UrbanEnv(CarlaGym):
         self.action_space = spaces.Discrete(carla_config.N_DISCRETE_ACTIONS)
 
         self.ego_vehicle = None
+        self.current_speed = 0.0
 
         
         # Rendering related
@@ -194,32 +195,44 @@ class UrbanEnv(CarlaGym):
 
     def _take_action(self, action, sp):
 
-        mps_to_kmph = 3.6
+        mps_kmph_conversion = 3.6
 
         target_speed = 0.0
 
-        if action == '0': # speed tracking 
-
-            self.planner.local_planner.set_speed(20.0)
+        # accelerate
+        if action == '0':
+            current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
+            desired_speed = current_speed + 0.2
+            desired_speed *= 3.6
+            print(desired_speed)
+            self.current_speed = desired_speed
+            self.planner.local_planner.set_speed(desired_speed)
             control = self.planner.run_step()
             control.brake = 0.0
             self.ego_vehicle.apply_control(control)
 
-        elif action == '1': # slow down/decelerate
-            current_speed = get_speed(self.ego_vehicle)
-            self.planner.local_planner.set_speed(current_speed - 1)
+        # decelerate
+        elif action == '1':
+            current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
+            desired_speed = current_speed - 0.2
+            desired_speed *= 3.6
+            self.current_speed = desired_speed
+            self.planner.local_planner.set_speed(desired_speed)
             control = self.planner.run_step()
             control.brake = 0.0
             self.ego_vehicle.apply_control(control)
 
 
-        elif action == '2': # stop
-            self.planner.local_planner.set_speed(0)
-            control = self.planner.run_step()
-            self.ego_vehicle.apply_control(control)
-
-        elif action == '3': # emergency stop
+        elif action == '2': # emergency stop
             self.emergency_stop()
+
+        
+        # speed tracking
+        elif action == '3':
+            self.planner.local_planner.set_speed(self.current_speed)
+            control = self.planner.run_step()
+            control.brake = 0.0
+            self.ego_vehicle.apply_control(control)
 
 
     def emergency_stop(self):
