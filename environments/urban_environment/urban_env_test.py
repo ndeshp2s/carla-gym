@@ -25,10 +25,13 @@ env.reset()
 
 
 try:
+    for i in range(25):
+        env.step('2')
+
     while True:
         action = '0'
         #action = random.randint(0, 3)
-        action = input('Enter action: ')
+        #action = input('Enter action: ')
 
 #         if rand == 0:
 #             action = '0'
