@@ -1,6 +1,6 @@
 town = "Town11"
-sp_x = 44.0
-sp_y = -1.8
+sp_x = 104
+sp_y = -2.0
 sp_z = 0.2
 sp_yaw = 180.0
 sp_pitch = 0.0
@@ -8,8 +8,8 @@ sp_roll = 0.0
 
 ev_bp = 'vehicle.audi.etron'
 ev_name = 'hero'
-ev_goal_x = -132.0
-ev_goal_y = 48.25
+ev_goal_x = -192.0
+ev_goal_y = -2.0
 ev_goal_z = 0.4
 ev_goal_yaw = -180.0
 
@@ -25,10 +25,10 @@ rgb_loc_z = 2.0
 sem_sensor = False
 
 # Display related
-display = True
+display = False
 
 # Rendering related
-render = True
+render = False
 screen_x = 720
 screen_y = 720
 
