@@ -25,22 +25,23 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.025,
-        "batch_size": 32,
+        "learning_rate": 1e-3,
+        "batch_size": 128,
         "sequence_length": 1,
-        "buffer_size": int(1e5),
-        "update_every_n_steps": 1,
-        "min_steps_before_learning": 1000,
+        "buffer_size": 1000,
+        "update_every_n_steps": 100,
+        "min_steps_before_learning": 0,
         "epsilon_start": 1,
-        "epsilon_end": 0.1,
-        "epsilon_decay": 0.995,
+        "epsilon_end": 0.01,
+        "epsilon_decay": 500,
         "discount_rate": 0.99,
         "tau": 0.01,
+        "gradient_clipping_norm": 1.0,
     }
     
     config.use_cuda = True
 
-    config.number_of_episodes = 500
+    config.number_of_episodes = 300
     config.steps_per_episode = 500
     config.previous_episode = 0
     config.total_steps = 160000
@@ -56,11 +57,27 @@ def main(args):
     config.model_dir = experiment_dir + '/model'
 
 
-    # Initialize the environment
-    env = gym.make('Urban-v0')
-    config.state_dim = env.observation_space.shape
-    config.action_dim = env.action_space.n
+    config.env = args.env
+    config.gamma = 0.99
+    config.epsilon = 1
+    config.epsilon_min = 0.01
+    config.eps_decay = 500
+    config.frames = 160000
+    config.use_cuda = True
+    config.learning_rate = 1e-3
+    config.max_buff = 1000
+    config.update_tar_interval = 100
+    config.batch_size = 128
+    config.print_interval = 200
+    config.log_interval = 200
+    config.win_reward = 198     # CartPole-v0
+    config.win_break = True
 
+
+    # Initialize the environment
+    env = gym.make('CartPole-v0')
+    config.state_dim = env.observation_space.shape[0]
+    config.action_dim = env.action_space.n
 
     # Initialize the agent
     agent = DDQNAgent(config)
@@ -69,7 +86,7 @@ def main(args):
     spawner = Spawner()
 
     if args.train:
-        trainer = Trainer(env, agent, spawner, config)
+        trainer = Trainer(env, agent, config)
 
         try:
             trainer.train()
@@ -95,10 +112,10 @@ def main(args):
 
         except KeyboardInterrupt:
             try:
-                trainer.close()
+                #trainer.close()
                 sys.exit(0)
             except SystemExit:
-                trainer.close()
+                #trainer.close()
                 os._exit(0)
 
     elif args.test:
