@@ -200,7 +200,7 @@ class UrbanEnv(CarlaGym):
         target_speed = 0.0
 
         # accelerate
-        if action == '0':
+        if action == 0:
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
             desired_speed = current_speed + 0.2
             desired_speed *= 3.6
@@ -212,7 +212,7 @@ class UrbanEnv(CarlaGym):
             self.ego_vehicle.apply_control(control)
 
         # decelerate
-        elif action == '1':
+        elif action == 1:
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
             desired_speed = current_speed - 0.2
             desired_speed *= 3.6
@@ -223,12 +223,12 @@ class UrbanEnv(CarlaGym):
             self.ego_vehicle.apply_control(control)
 
 
-        elif action == '2': # emergency stop
+        elif action == 2: # emergency stop
             self.emergency_stop()
 
         
         # speed tracking
-        elif action == '3':
+        elif action == 3:
             self.planner.local_planner.set_speed(self.current_speed)
             control = self.planner.run_step()
             control.brake = 0.0
@@ -258,7 +258,7 @@ class UrbanEnv(CarlaGym):
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(20):
+        for i in range(100):
             self.step('2')
 
         state = self._get_observation()
@@ -403,17 +403,18 @@ class UrbanEnv(CarlaGym):
             # if the object is not in our lane it's not an obstacle
             target_waypoint = self.world.get_map().get_waypoint(target.get_location(), project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
 
-            if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
-                    target_waypoint.lane_id == ego_vehicle_waypoint.lane_id and \
-                    target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
-                
-                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 3.0):
+            # if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
+            #         target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
+                    #target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
+            if target_waypoint.lane_type == carla.LaneType.Driving and target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
+                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 4.0):
+                #if self.distance(self.ego_vehicle.get_transform(), target.get_transform()) < 10.0:
                     return (True, True, target)
 
-            if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
-                    target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
+            # if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
+            #         target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
                 
-                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 10.0):
+                elif is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 8.0):
                     return (False, True, target)
 
         return (False, False, None)
