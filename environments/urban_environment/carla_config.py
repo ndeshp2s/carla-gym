@@ -1,5 +1,5 @@
 town = "Town11"
-sp_x = 44.0
+sp_x = 54.0
 sp_y = -1.8
 sp_z = 0.2
 sp_yaw = 180.0
@@ -66,9 +66,9 @@ ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] #
 # Spawner related
 num_of_ped = 10
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.5
-percentage_pedestrians_crossing_illegal = 0.5
-ped_spawn_min_dist = -10.0
-ped_spawn_max_dist = 50.0
-ped_max_dist = 60.0
-ped_min_dist = -10.0
+percentage_pedestrians_crossing = 1.0
+percentage_pedestrians_crossing_illegal = 0.0
+ped_spawn_min_dist = 10.0
+ped_spawn_max_dist = 40.0
+ped_max_dist = 50.0
+ped_min_dist = 0.0
