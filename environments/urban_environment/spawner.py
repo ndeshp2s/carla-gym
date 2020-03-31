@@ -3,8 +3,8 @@ import glob
 import os
 import random
 import numpy as np
+from math import sqrt
 import math
-
 try:
     sys.path.append(glob.glob('/home/niranjan/carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -57,18 +57,23 @@ class Spawner(object):
             pass
 
 
-    def run_step(self, ev_trans = None):
+    def run_step(self, ev_trans = None, step_num = 0):
 
         ev_trans = self.get_ev_trans()
 
-        self.controller_turnon()
+        spawn_points = self.get_spawn_points(ev_trans)
 
-        #while len(self.pedestrian_list) <  self.num_of_ped:
-        self.spawn_pedestrian(ev_trans)
         
+        self.controller_turnon(spawn_points)
+
         self.check_pedestrian_distance(ev_trans)
 
-    def spawn_pedestrian(self, ev_trans = None):
+
+        self.spawn_pedestrian(spawn_points, ev_trans)
+
+            
+        
+    def spawn_pedestrian(self, spawn_points, ev_trans = None):
 
         if self.connected_to_server is False:
             return
@@ -82,30 +87,32 @@ class Spawner(object):
         # Add pedestrian
         ped_bp = random.choice(self.world.get_blueprint_library().filter("walker.pedestrian.*"))
         ped_id = next((index for index, value in enumerate(self.pedestrian_ids) if value == 0), None)
+
         ped_bp.set_attribute('role_name', str(ped_id + 1))
 
         ped = None
-        spawn_point = carla.Transform()
+        sp = carla.Transform()
 
-        n = 0
-        while n < 100:
-            spawn_point = random.choice(walker_spawn_points)
-            loc = spawn_point.location
-            #loc = carla.Location(x = 18.0, y = 5.0, z = 1)
-            if self.is_within_distance(loc, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_spawn_max_dist, carla_config.ped_spawn_min_dist):
-                spawn_point.location = loc
-                ped = self.world.try_spawn_actor(ped_bp, spawn_point)
-                break
+        counter = 0
+        while len(self.pedestrian_list) <  self.num_of_ped:
+            if len(spawn_points) == 0 or counter >= self.num_of_ped:
+                return
 
-            n  = n + 1
+            sp = random.choice(spawn_points)
+            sp.location.x += random.uniform(-0.5, 0.5)
+            sp.location.y += random.uniform(-0.5, 0.5)
 
-        if ped is not None:
-            self.pedestrian_ids[ped_id] = 1
-            self.pedestrian_list.append({"id": ped.id, "controller": None})
+            ped = self.world.try_spawn_actor(ped_bp, sp)
+
+            if ped is not None:
+                self.pedestrian_ids[ped_id] = 1
+                self.pedestrian_list.append({"id": ped.id, "controller": None, "start": sp})
+                spawn_points.remove(sp)
+
+            counter = counter + 1
 
 
-    def controller_turnon(self):
-
+    def controller_turnon(self, goal_points):
         controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
 
         for p in self.pedestrian_list:
@@ -113,16 +120,15 @@ class Spawner(object):
                 ped = self.world.get_actor(p["id"])
                 controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to = ped)
                 controller.start()
-                controller.go_to_location(self.world.get_random_location_from_navigation())
-                #controller.go_to_location(carla.Location(x = 18.0, y = -5.2, z = 0.3))
-                controller.set_max_speed(float(1.0))
+                goal = self.get_goal(goal_points, p["start"])
+                controller.go_to_location(goal.location)
+                controller.set_max_speed(float(2.0))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
 
 
     def check_pedestrian_distance(self, ev_trans = None):
-
         if ev_trans is None:
             return
 
@@ -134,17 +140,7 @@ class Spawner(object):
 
             ped_trans = ped.get_transform()
 
-            tar_vec = np.array([ev_trans.location.x -ped_trans.location.x, ev_trans.location.y - ped_trans.location.y])
-            norm = np.linalg.norm(tar_vec)
-
-            rot = ev_trans.rotation.yaw
-
-            for_vec = np.array([math.cos(math.radians(rot)), math.sin(math.radians(rot))])
-            d_ang = math.degrees(math.acos(np.dot(for_vec, tar_vec) / norm))
-
-            #if norm > 50.0 or norm < -5.0:
-            if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist):
-                
+            if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist):    
                 if p["controller"] is not None:
                     controller = self.world.get_actor(p["controller"])
                     if controller is not None:
@@ -160,7 +156,6 @@ class Spawner(object):
                 
                 
     def get_ev_trans(self):
-
         ev = self.get_ev()
 
         if ev is not None:
@@ -170,7 +165,6 @@ class Spawner(object):
 
 
     def get_ev(self):
-
         actors = self.world.get_actors().filter(carla_config.ev_bp)
 
         if actors is not None:
@@ -179,39 +173,6 @@ class Spawner(object):
                     return a
         else:
             return None
-
-
-        # if sp is None:
-
-        #     world = self.client.get_world()
-
-        #     walker_bp = random.choice(self.blueprints_walkers)
-
-        #     loc = world.get_random_location_from_navigation()
-
-        #     while not self.is_within(loc, ev_trans.location, ev_trans.rotation.yaw, 60.0, 20.0):
-        #         loc = world.get_random_location_from_navigation()
-
-        #     #spawn walker
-        #     walker_bp = random.choice(world.get_blueprint_library().filter("walker.pedestrian.*"))
-        #     controller_bp = world.get_blueprint_library().find('controller.ai.walker')
-
-        #     print(walker_bp)
-        #     print(loc)
-        #     spawn_point = carla.Transform()
-        #     spawn_point.location = loc
-
-        #     walker = world.try_spawn_actor(walker_bp, spawn_point)
-
-        #     if walker is not None:
-        #         controller = world.spawn_actor(controller_bp, carla.Transform(), attach_to=walker)
-
-        #         controller.start()
-
-
-
-            #print(walker_bp)
-            #print(loc)
 
 
     def destroy_all(self):
@@ -224,10 +185,7 @@ class Spawner(object):
                 a.destroy()
 
 
-
-
     def is_within_distance(self, tar_loc, cur_loc, rot, max_dist, min_dist, spawn = True):
-
         tar_vec = np.array([tar_loc.x - cur_loc.x, tar_loc.y - cur_loc.y])
         norm = np.linalg.norm(tar_vec)
 
@@ -240,11 +198,31 @@ class Spawner(object):
         if (norm > max_dist or norm < min_dist):
             return False
 
-        for_vec = np.array([math.cos(math.radians(rot)), math.sin(math.radians(rot))])
-        d_ang = math.degrees(math.acos(np.dot(for_vec, tar_vec) / norm))
+        return d_ang < 90.0
 
-        return d_ang < 50.0
 
+    def get_spawn_points(self, ev_trans = None):
+        if ev_trans is None:
+            return
+        spawn_points = []
+
+        for sp in walker_spawn_points:
+            if self.is_within_distance(sp.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_spawn_max_dist, carla_config.ped_spawn_min_dist):
+                spawn_points.append(sp)
+
+        return spawn_points
+
+
+    def get_goal(self, goal_points, start):
+        for goal in goal_points:
+            goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
+            start_wp = self.world.get_map().get_waypoint(start.location, project_to_road = True, lane_type = carla.LaneType.Any)
+             
+
+            if (goal_wp.lane_id != start_wp.lane_id and goal_wp.road_id == start_wp.road_id):
+                return goal
+            
+        return random.choice(walker_goal_points)
 
 
 
