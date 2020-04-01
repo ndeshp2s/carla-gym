@@ -181,10 +181,7 @@ class UrbanEnv(CarlaGym):
             nc_reward = -5
 
         # Check if goal reached
-        ev_trans = self.ego_vehicle.get_transform()
-
-        d = self.distance(ev_trans, carla.Transform(carla.Location(x = carla_config.ev_goal_x, y = carla_config.ev_goal_y, z = carla_config.ev_goal_z)))
-        if d < 6:
+        if self.planner.done():
             done = True
 
 
@@ -204,7 +201,6 @@ class UrbanEnv(CarlaGym):
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
             desired_speed = current_speed + 0.2
             desired_speed *= 3.6
-            print(desired_speed)
             self.current_speed = desired_speed
             self.planner.local_planner.set_speed(desired_speed)
             control = self.planner.run_step()
@@ -301,6 +297,7 @@ class UrbanEnv(CarlaGym):
         self.planner = Planner()
         self.planner.initialize(self.ego_vehicle)
         self.planner.set_destination((carla_config.ev_goal_x, carla_config.ev_goal_y, carla_config.ev_goal_z))
+        self.planner.view_plan()
 
 
     def spawn_ego_vehicle(self, bp = None, sp = None):
