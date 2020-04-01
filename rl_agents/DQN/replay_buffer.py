@@ -14,6 +14,9 @@ class ReplayBuffer():
         experience = self.experience(state, action, reward, next_state, done)
         self.memory.append(experience)
 
+    def add_episode(self, episode):
+        self.memory.append(episode)
+
 
     def sample(self, batch_size = 32):
         experiences = random.sample(self.memory, k = batch_size)
@@ -28,14 +31,14 @@ class ReplayBuffer():
 
         #return experiences
 
-    # def get_batch(self, batch_size = 0, sequence_length = 0):
-    #     experiences = random.sample(self.memory, batch_size)
+    def get_batch(self, batch_size = 1, time_step = 1):
+        episodes = random.sample(self.memory, batch_size)
 
-    #     batch = []
-    #     for e in experiences:
-    #         point = np.random.randit(0, len(e) + 1 - sequence_length)
-    #         batch.append(e[point:point + sequence_length])
-    #     return batch
+        batch = []
+        for e in episodes:
+            point = np.random.randint(0, len(e) + 1 - time_step)
+            batch.append(e[point:point + time_step])
+        return batch
 
     def __len__(self):
         return len(self.memory)
