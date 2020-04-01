@@ -1,5 +1,5 @@
 town = "Town11"
-sp_x = 54.0
+sp_x = 50.0
 sp_y = -1.8
 sp_z = 0.2
 sp_yaw = 180.0
@@ -8,10 +8,10 @@ sp_roll = 0.0
 
 ev_bp = 'vehicle.audi.etron'
 ev_name = 'hero'
-ev_goal_x = -132.0
-ev_goal_y = 48.25
-ev_goal_z = 0.4
-ev_goal_yaw = -180.0
+ev_goal_x = -140.0
+ev_goal_y = 40.25
+ev_goal_z = 0.2
+ev_goal_yaw = 180.0
 
 # Sensors
 rgb_sensor = True
@@ -64,7 +64,7 @@ y_size = 30
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
 
 # Spawner related
-num_of_ped = 10
+num_of_ped = 0
 num_of_veh = 0
 percentage_pedestrians_crossing = 1.0
 percentage_pedestrians_crossing_illegal = 0.0
