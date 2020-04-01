@@ -13,7 +13,6 @@ class NeuralNetwork(nn.Module):
         self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 4)
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 2, stride = 2)
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1)
-        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 512, kernel_size = 7, stride = 1)
 
         self.lstm_layer = nn.LSTM(input_size = 768, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
@@ -43,7 +42,7 @@ class NeuralNetwork(nn.Module):
 
         output = self.fc1(o)
 
-        return output, h_n, c_n
+        return output, (h_n, c_n)
 
 
     def init_hidden_states(self, batch_size):
@@ -57,25 +56,70 @@ class NeuralNetwork(nn.Module):
 DEBUG = 1
 
 if DEBUG:
-	import random
+    import random
 
-	INPUT_IMAGE_DIM = 84
-	OUT_SIZE = 4
-	BATCH_SIZE = 1
-	TIME_STEP = 1
+    INPUT_IMAGE_DIM = 84
+    OUT_SIZE = 4
+    BATCH_SIZE = 1
+    TIME_STEP = 1
 
-	# Dummy data
-	x = np.zeros([60,30,3])
-	batch = []
-	for i in range(TIME_STEP*BATCH_SIZE):
-		batch.append(x)
+    # Dummy data
+    x = np.zeros([60,30,3])
+    batch = []
+    for i in range(TIME_STEP*BATCH_SIZE):
+        batch.append(x)
 
 
-	model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=512)
-	hidden_state, cell_state = model.init_hidden_states(batch_size=1)
+    model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=512)
+    hidden_state, cell_state = model.init_hidden_states(batch_size=1)
+    target = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=512)
 
-	states = np.array(batch)
+    x = np.array(batch)
 
-	torch_x = torch.from_numpy(states).float()
-	output = model.forward(torch_x, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
-	print(output[0])
+    torch_x = torch.from_numpy(x).float()
+    output = model.forward(torch_x, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    print(output[0])
+
+    states = []
+    actions = []
+    rewards = []
+    next_states = []
+
+    s, a, r, ns = [], [], [], []
+
+    s.append(x)
+    a.append(1)
+    r.append(0)
+    ns.append(x)
+
+    states.append(s)
+    actions.append(a)
+    rewards.append(r)
+    next_states.append(ns)
+
+    states = torch.from_numpy(np.array(states)).float()
+    actions = torch.from_numpy(np.array(actions)).long()
+    rewards = torch.from_numpy(np.array(rewards)).float()
+    next_states = torch.from_numpy(np.array(next_states)).float()
+
+    q_predicted_all, _ = model.forward(states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+
+    print(actions[:,TIME_STEP-1].unsqueeze(dim=1))
+
+    q_predicted = q_predicted_all.gather(dim=1,index=actions[:,TIME_STEP-1].unsqueeze(dim=1)).squeeze(dim=1)
+    print(q_predicted)
+
+    next_q_values, _ = model.forward(next_states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    next_q_state_values, _ = target.forward(next_states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+
+    print(next_q_state_values)
+    print(next_q_values)
+
+    next_q_value = next_q_state_values.gather(1, next_q_values.max(1)[1].unsqueeze(1)).squeeze(1)
+
+    print(next_q_value)
+
+    expected_q_value = rewards[:,TIME_STEP-1] + 0.99 * next_q_value
+    print(expected_q_value)
+    # print(next_q_values.max(1)[1].unsqueeze(1))
+
