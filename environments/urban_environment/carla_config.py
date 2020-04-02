@@ -1,5 +1,5 @@
 town = "Town11"
-sp_x = 54.0
+sp_x = 40.0
 sp_y = -1.8
 sp_z = 0.2
 sp_yaw = 180.0
@@ -25,10 +25,10 @@ rgb_loc_z = 2.0
 sem_sensor = False
 
 # Display related
-display = True
+display = False
 
 # Rendering related
-render = True
+render = False
 screen_x = 720
 screen_y = 720
 
@@ -64,11 +64,11 @@ y_size = 30
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
 
 # Spawner related
-num_of_ped = 10
+num_of_ped = 6
 num_of_veh = 0
-percentage_pedestrians_crossing = 1.0
-percentage_pedestrians_crossing_illegal = 0.0
-ped_spawn_min_dist = 10.0
+percentage_pedestrians_crossing = 0.7
+percentage_pedestrians_crossing_illegal = 0.3
+ped_spawn_min_dist = 15.0
 ped_spawn_max_dist = 40.0
 ped_max_dist = 50.0
 ped_min_dist = 0.0
