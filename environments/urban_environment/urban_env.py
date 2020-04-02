@@ -51,8 +51,8 @@ class UrbanEnv(CarlaGym):
 
         self.ego_vehicle = None
         self.current_speed = 0.0
-        self.max_allowed_speed = 10.0
-        self.max_reachable_speed = 25.0
+        self.max_allowed_speed = 15.0
+        self.max_reachable_speed = 20.0
 
         
         # Rendering related
@@ -66,7 +66,8 @@ class UrbanEnv(CarlaGym):
 
     def step(self, action = None,sp=25):
 
-        self._take_action(action, sp)
+        if action is not None:
+            self._take_action(action, sp)
 
         self.tick()
 
@@ -207,7 +208,7 @@ class UrbanEnv(CarlaGym):
         # accelerate
         if action == 0:
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
-            desired_speed = current_speed + 0.2
+            desired_speed = current_speed + 0.1
             desired_speed *= 3.6
             self.current_speed = desired_speed
             self.planner.local_planner.set_speed(desired_speed)
@@ -218,7 +219,7 @@ class UrbanEnv(CarlaGym):
         # decelerate
         elif action == 1:
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
-            desired_speed = current_speed - 0.2
+            desired_speed = current_speed - 0.1
             desired_speed *= 3.6
             self.current_speed = desired_speed
             self.planner.local_planner.set_speed(desired_speed)
@@ -228,6 +229,7 @@ class UrbanEnv(CarlaGym):
 
 
         elif action == 2: # emergency stop
+            self.current_speed = 0
             self.emergency_stop()
 
         
@@ -262,8 +264,8 @@ class UrbanEnv(CarlaGym):
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(25):
-            self.step(0)
+        for i in range(20):
+            self.step(2)
 
         state = self._get_observation()
 

@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 from experiments.config import Config
 from experiments.util import EpsilonTracker, DataVisualization
 
-DEBUG = 1
+DEBUG = 0
 class Trainer:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env
@@ -59,15 +59,15 @@ class Trainer:
                 action = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
                                                 hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
 
-            #     if DEBUG:
-            #         action = input('Enter to continue: ')
-            #         action = int(action)
+                if DEBUG:
+                    action = input('Enter to continue: ')
+                    action = int(action)
 
                 
                 # Execute action for 10 times
-                for i in range(10):
-                    next_state, reward, done, info = self.env.step(0)
-
+                next_state, reward, done, info = self.env.step(action)
+                for i in range(9):
+                    next_state, reward, done, info = self.env.step(3)
                 # Add experience to memory of local network
                 local_memory.append((state, action, reward, next_state, done))
             #     #self.agent.add(state, action, reward, next_state, done)

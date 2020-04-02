@@ -122,7 +122,7 @@ class Spawner(object):
                 controller.start()
                 goal = self.get_goal(goal_points, p["start"])
                 controller.go_to_location(goal.location)
-                controller.set_max_speed(float(2.0))
+                controller.set_max_speed(float(1.4))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
