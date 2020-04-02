@@ -36,13 +36,15 @@ class NeuralNetwork(nn.Module):
         conv_out = conv_out.view(batch_size, time_step, n_features)
 
         lstm_out = self.lstm_layer(conv_out, (hidden_state, cell_state))
-        o = lstm_out[0][:,time_step-1,:]
+        output1 = lstm_out[0][:,time_step-1,:]
         h_n = lstm_out[1][0]
         c_n = lstm_out[1][1]
 
-        x2 = x2.view(batch_size*time_step, 1)
 
-        output = torch.cat((x2, o), dim = 1)
+        output2 = x2[:, time_step - 1]
+        output2 = output2.view(batch_size, 1)
+
+        output = torch.cat((output2, output1), dim = 1)
         output = self.fc1(output)
 
         return output, (h_n, c_n)

@@ -38,7 +38,8 @@ class DDQNCNNLSTMAgent:
         self.memory.add_episode(episode)
 
 
-    def learn(self, batch_size = 1, time_step = 1, experiences = None, step = 0):
+    def learn(self, batch_size, time_step, experiences = None, step = 0):
+
         hidden_batch, cell_batch = self.local_network.init_hidden_states(batch_size = batch_size)
 
         batch  = self.memory.get_batch(batch_size = batch_size, time_step = time_step)
@@ -108,7 +109,6 @@ class DDQNCNNLSTMAgent:
         if step % self.hyperparameters["update_every_n_steps"] == 0:
             self.target_network.load_state_dict(self.local_network.state_dict())
 
-        
         return loss.item()
 
 

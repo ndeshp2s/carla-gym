@@ -33,7 +33,7 @@ def main(args):
         "min_steps_before_learning": 500,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
-        "epsilon_decay": 25000,
+        "epsilon_decay": 1e-4,
         "discount_rate": 0.99,
         "tau": 0.01,
     }

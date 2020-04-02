@@ -64,7 +64,7 @@ y_size = 30
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
 
 # Spawner related
-num_of_ped = 6
+num_of_ped = 8
 num_of_veh = 0
 percentage_pedestrians_crossing = 0.8
 percentage_pedestrians_crossing_illegal = 0.2
