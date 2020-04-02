@@ -1,4 +1,5 @@
 import os
+import math
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -11,13 +12,9 @@ class Trainer:
         self.env = env
         self.agent = agent
         self.config = config
-        self.epsilon_decay = EpsilonTracker(epsilon_start = self.config.hyperparameters["epsilon_start"], 
-                                            epsilon_final = self.config.hyperparameters["epsilon_end"], 
-                                            warmup_steps = self.config.hyperparameters["min_steps_before_learning"], 
-                                            total_steps = self.config.total_steps, 
-                                            epsilon_decay = self.config.hyperparameters["epsilon_decay"],
-                                            total_episodes = self.config.number_of_episodes*self.config.steps_per_episode)
 
+        self.epsilon_decay = lambda frame_idx: self.config.hyperparameters["epsilon_end"] + (self.config.hyperparameters["epsilon_start"]\
+                                    - self.config.hyperparameters["epsilon_end"]) * math.exp(-1. * frame_idx / self.config.hyperparameters["epsilon_decay"])
         if not os.path.isdir(self.config.log_dir):
             os.makedirs(self.config.log_dir)
         self.writer = SummaryWriter(log_dir = self.config.log_dir)
@@ -42,7 +39,8 @@ class Trainer:
         
         epsilon = self.config.hyperparameters["epsilon_start"]
 
-        for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
+        #for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
+        while total_steps < self.config.total_steps:
 
             # Reset the environment and variables for new episode
             episode_reward = 0
@@ -61,18 +59,18 @@ class Trainer:
                 action = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
                                                 hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
 
-                if DEBUG:
-                    action = input('Enter to continue: ')
-                    action = int(action)
+            #     if DEBUG:
+            #         action = input('Enter to continue: ')
+            #         action = int(action)
 
                 
                 # Execute action for 10 times
                 for i in range(10):
-                    next_state, reward, done, info = self.env.step(action)
+                    next_state, reward, done, info = self.env.step(0)
 
                 # Add experience to memory of local network
                 local_memory.append((state, action, reward, next_state, done))
-                #self.agent.add(state, action, reward, next_state, done)
+            #     #self.agent.add(state, action, reward, next_state, done)
 
                 # Update parameters
                 state = next_state
@@ -80,12 +78,12 @@ class Trainer:
                 total_steps += 1
 
                 # Execute spwner step
-                #self.spawner.run_step()
+                self.spawner.run_step()
 
 
                 # Performing learning if minumum required experiences gathered
                 loss = 0
-                if total_steps > self.config.pre_train_steps and total_steps % self.config.learing_frequency == 0 \
+                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and total_steps % self.config.learing_frequency == 0 \
                 and self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
                     loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"])
 
@@ -93,46 +91,52 @@ class Trainer:
 
 
                 if done:
-                    print('Done:', total_steps, step_num)
-                    #info = 'Done'
                     self.spawner.destroy_all()
                     break
 
                 # epsilon update
                 # Only after a few initial steps
                 if total_steps > self.config.pre_train_steps:
-                    #epsilon = self.epsilon_decay.update(total_steps)
-                    epsilon = self.epsilon_decay.update()
+                    epsilon = self.epsilon_decay(total_steps - self.config.pre_train_steps)
 
                 self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
 
 
+            # Save the episode
+            self.agent.add(local_memory)
+
             # Print details of the episode
             print("----------------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f, Total Step: %d, Info: %s" % (ep_num, episode_reward, loss, total_steps, info))
+            print("Episode: %d, Reward: %5f, Loss: %4f, Total Step: %d, Info: %s, Epsilon: %4f" % (episode_number, episode_reward, loss, total_steps, info, epsilon))
             print("----------------------------------------------------------")
 
-            # # Save episode reward
-            self.writer.add_scalar('Reward per episode', episode_reward, ep_num)
+            # Save episode reward
+            self.writer.add_scalar('Reward per episode', episode_reward, episode_number)
 
-            # # Save weights
-            # self.agent.save_model(self.config.model_dir)
+            # # # Save weights
+            # # self.agent.save_model(self.config.model_dir)
 
             # Save checkpoints
-            if not os.path.isdir(self.config.checkpoint_dir):
-                os.makedirs(self.config.checkpoint_dir)
+            # if not os.path.isdir(self.config.checkpoint_dir):
+            #     os.makedirs(self.config.checkpoint_dir)
 
-            if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
+            if self.config.checkpoint and episode_number % self.config.checkpoint_interval == 0:
                 checkpoint = {'state_dict': self.agent.local_network.state_dict(),
                             'optimizer': self.agent.optimizer.state_dict(),
-                            'episode': ep_num,
+                            'episode': episode_number,
                             'epsilon': epsilon,
                             'total_steps': total_steps}
                 torch.save(checkpoint, self.config.checkpoint_dir + '/model_and_parameters.pth')
             
-            # # if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
-            # #     self.agent.save_checkpoint()
+            # # # if self.config.checkpoint and ep_num % self.config.checkpoint_interval == 0:
+            # # #     self.agent.save_checkpoint()
 
+            # Update epsiode count
+            episode_number = episode_number + 1
+
+
+        # Once done, close environment
+        self.close()
 
 
     def close(self):
