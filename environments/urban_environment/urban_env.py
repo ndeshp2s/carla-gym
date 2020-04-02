@@ -264,7 +264,7 @@ class UrbanEnv(CarlaGym):
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(20):
+        for i in range(10):
             self.step(2)
 
         state = self._get_observation()
