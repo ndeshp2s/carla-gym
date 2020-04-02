@@ -51,6 +51,8 @@ class UrbanEnv(CarlaGym):
 
         self.ego_vehicle = None
         self.current_speed = 0.0
+        self.max_allowed_speed = 10.0
+        self.max_reachable_speed = 25.0
 
         
         # Rendering related
@@ -81,20 +83,14 @@ class UrbanEnv(CarlaGym):
 
 
     def _get_observation(self):
-        tensor = np.zeros([self.state_y, self.state_x, self.channel])
+        tensor1 = np.zeros([self.state_y, self.state_x, self.channel])
+        tensor2 = np.zeros([1])
 
         # Fill ego vehicle information
         ev_trans = self.ego_vehicle.get_transform()
-        
-        for i in range(-1, 2):
-            for j in range(0, 2):
-                x_discrete, status = self.get_index(i, carla_config.x_min, carla_config.x_max, carla_config.x_size)
-                y_discrete, status = self.get_index(j, carla_config.y_min, carla_config.y_max, carla_config.y_size)
 
-                x_discrete = np.argmax(x_discrete)
-                y_discrete = np.argmax(y_discrete)
-                
-                tensor[x_discrete, y_discrete, :] = [0.01]
+        ev_speed = get_speed(self.ego_vehicle)
+        tensor2[0] = self.normalize_data(ev_speed, 0.0, self.max_reachable_speed)
         
 
         # Fill pedestrian information
@@ -139,12 +135,16 @@ class UrbanEnv(CarlaGym):
                     ped_lane = 3
 
 
-                tensor[x_discrete, y_discrete,:] = [self.normalize_data(p_id, 0.0, carla_config.num_of_ped), 
+                tensor1[x_discrete, y_discrete,:] = [self.normalize_data(p_id, 0.0, carla_config.num_of_ped), 
                                                     self.normalize_data(p_heading, 0.0, 360.0),       
                                                     self.normalize_data(ped_lane, 0.0, 3)]
                                                     # ped id, ped relative orientation and region occupied.
 
                 #print(tensor[x_discrete, y_discrete, :])
+
+        tensor = []
+        tensor.append(tensor1)
+        tensor.append(tensor2)
         
         return tensor
 
@@ -157,13 +157,13 @@ class UrbanEnv(CarlaGym):
         total_reward = d_reward = nc_reward = c_reward = 0
 
         # Reward for speed 
-        # ev_speed = get_speed(self.ego_vehicle)
+        ev_speed = get_speed(self.ego_vehicle)
 
-        # if ev_speed > 0.0 and ev_speed <=50:
-        #     d_reward = (10.0 - abs(10.0 - ev_speed))/10.0
+        if ev_speed > 0.0 and ev_speed <= self.max_allowed_speed:
+            d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
-        # elif ev_speed > 50:
-        #     d_reward = -5
+        elif ev_speed > self.max_allowed_speed:
+            d_reward = -5
 
         # elif ev_speed <= 0.0:
         #     d_reward = -2
@@ -178,9 +178,9 @@ class UrbanEnv(CarlaGym):
             done = True
             info = 'Collision'
 
-        elif near_collision is True:
-            #print('near collision')
-            nc_reward = -5
+        # elif near_collision is True:
+        #     #print('near collision')
+        #     nc_reward = -5
 
         # Check if goal reached
         if self.planner.done():
@@ -262,8 +262,8 @@ class UrbanEnv(CarlaGym):
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(100):
-            self.step('2')
+        for i in range(25):
+            self.step(0)
 
         state = self._get_observation()
 
@@ -411,7 +411,7 @@ class UrbanEnv(CarlaGym):
             #         target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
                     #target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
             if target_waypoint.lane_type == carla.LaneType.Driving and target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
-                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 4.0):
+                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 5.0):
                 #if self.distance(self.ego_vehicle.get_transform(), target.get_transform()) < 10.0:
                     return (True, True, target)
 
