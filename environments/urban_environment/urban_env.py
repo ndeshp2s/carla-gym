@@ -70,14 +70,14 @@ class UrbanEnv(CarlaGym):
 
         state = self._get_observation()
 
-        reward, done = self._get_reward()
+        reward, done, info = self._get_reward()
 
         if self.render and self.is_render_enabled: 
             if self.rgb_image is not None:
                 img = self.get_rendered_image()
                 self.renderer.render_image(img)
 
-        return state, reward, done 
+        return state, reward, done, info 
 
 
     def _get_observation(self):
@@ -152,6 +152,7 @@ class UrbanEnv(CarlaGym):
     def _get_reward(self):
 
         done = False
+        info = 'Done'
 
         total_reward = d_reward = nc_reward = c_reward = 0
 
@@ -175,22 +176,26 @@ class UrbanEnv(CarlaGym):
             #print('collision')
             c_reward = -10
             done = True
+            info = 'Collision'
 
         elif near_collision is True:
             #print('near collision')
             nc_reward = -5
 
         # Check if goal reached
-        ev_trans = self.ego_vehicle.get_transform()
-
-        d = self.distance(ev_trans, carla.Transform(carla.Location(x = carla_config.ev_goal_x, y = carla_config.ev_goal_y, z = carla_config.ev_goal_z)))
-        if d < 6:
+        if self.planner.done():
             done = True
+            info = 'Goal Reached'
+        # ev_trans = self.ego_vehicle.get_transform()
+
+        # d = self.distance(ev_trans, carla.Transform(carla.Location(x = carla_config.ev_goal_x, y = carla_config.ev_goal_y, z = carla_config.ev_goal_z)))
+        # if d < 6:
+        #     done = True
 
 
         total_reward = d_reward + nc_reward + c_reward
 
-        return total_reward, done
+        return total_reward, done, info
 
 
     def _take_action(self, action, sp):
@@ -204,7 +209,6 @@ class UrbanEnv(CarlaGym):
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
             desired_speed = current_speed + 0.2
             desired_speed *= 3.6
-            print(desired_speed)
             self.current_speed = desired_speed
             self.planner.local_planner.set_speed(desired_speed)
             control = self.planner.run_step()
