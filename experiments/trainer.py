@@ -5,7 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from experiments.config import Config
 from experiments.util import EpsilonTracker, DataVisualization
 
-DEBUG = 0
+DEBUG = 1
 class Trainer:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env
@@ -38,7 +38,7 @@ class Trainer:
         episode_number = 0
         total_steps = 0
 
-        data_vis = DataVisualization(x_min = 0, x_max = 30, y_min = -5, y_max = 25)
+        #data_vis = DataVisualization(x_min = 0, x_max = 30, y_min = -5, y_max = 25)
         
         epsilon = self.config.hyperparameters["epsilon_start"]
 
@@ -49,20 +49,30 @@ class Trainer:
             state = self.env.reset()
             self.spawner.reset()
 
+            local_memory = []
+
+            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
+
+
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state)
-                if DEBUG:
-                    input('Enter to continue: ')
                 
                 # Select action
-                action = self.agent.pick_action(state, epsilon)
+                action = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
+                                                hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
+
+                if DEBUG:
+                    action = input('Enter to continue: ')
+                    action = int(action)
 
                 
-                # Execute step
-                next_state, reward, done = self.env.step(action)
+                # Execute action for 10 times
+                for i in range(10):
+                    next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
-                self.agent.add(state, action, reward, next_state, done)
+                local_memory.append((state, action, reward, next_state, done))
+                #self.agent.add(state, action, reward, next_state, done)
 
                 # Update parameters
                 state = next_state
@@ -70,18 +80,21 @@ class Trainer:
                 total_steps += 1
 
                 # Execute spwner step
-                self.spawner.run_step()
+                #self.spawner.run_step()
 
 
                 # Performing learning if minumum required experiences gathered
                 loss = 0
-                if total_steps > self.config.pre_train_steps and total_steps % self.config.learing_frequency == 0:
+                if total_steps > self.config.pre_train_steps and total_steps % self.config.learing_frequency == 0 \
+                and self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
                     loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"])
 
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
 
                 if done:
+                    print('Done:', total_steps, step_num)
+                    #info = 'Done'
                     self.spawner.destroy_all()
                     break
 
@@ -95,9 +108,9 @@ class Trainer:
 
 
             # Print details of the episode
-            print("------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f" % (ep_num, episode_reward, loss))
-            print("------------------------------------------------")
+            print("----------------------------------------------------------")
+            print("Episode: %d, Reward: %5f, Loss: %4f, Total Step: %d, Info: %s" % (ep_num, episode_reward, loss, total_steps, info))
+            print("----------------------------------------------------------")
 
             # # Save episode reward
             self.writer.add_scalar('Reward per episode', episode_reward, ep_num)
