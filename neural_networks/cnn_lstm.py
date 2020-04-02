@@ -16,17 +16,17 @@ class NeuralNetwork(nn.Module):
 
         self.lstm_layer = nn.LSTM(input_size = 768, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(self.lstm_memory, self.output_size)
+        self.fc1 = nn.Linear(self.lstm_memory + 1, self.output_size)
         
         self.relu = nn.ReLU()
 
         self.device = device
 
 
-    def forward(self, x, batch_size, time_step, hidden_state, cell_state):
+    def forward(self, x1, x2, batch_size, time_step, hidden_state, cell_state):
         # (N, C, H, W) batch size, input channel, input height, input width
-        x = x.view(batch_size*time_step, self.input_size[2], self.input_size[1], self.input_size[0])
-        conv_out = self.conv1(x)
+        x1 = x1.view(batch_size*time_step, self.input_size[2], self.input_size[1], self.input_size[0])
+        conv_out = self.conv1(x1)
         conv_out = self.relu(conv_out)
         conv_out = self.conv2(conv_out)
         conv_out = self.relu(conv_out)
@@ -40,7 +40,10 @@ class NeuralNetwork(nn.Module):
         h_n = lstm_out[1][0]
         c_n = lstm_out[1][1]
 
-        output = self.fc1(o)
+        x2 = x2.view(batch_size*time_step, 1)
+
+        output = torch.cat((x2, o), dim = 1)
+        output = self.fc1(output)
 
         return output, (h_n, c_n)
 
@@ -53,7 +56,7 @@ class NeuralNetwork(nn.Module):
 
 
 
-DEBUG = 1
+DEBUG = 0
 
 if DEBUG:
     import random
@@ -69,57 +72,74 @@ if DEBUG:
     for i in range(TIME_STEP*BATCH_SIZE):
         batch.append(x)
 
+    ev_data = np.zeros([1, 1])
 
-    model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=512)
+
+    model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=768)
     hidden_state, cell_state = model.init_hidden_states(batch_size=1)
-    target = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=512)
+    target = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=768)
 
-    x = np.array(batch)
 
-    torch_x = torch.from_numpy(x).float()
-    output = model.forward(torch_x, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
-    print(output[0])
+    # Dummy data
+    x = []
+    x.append(np.zeros([60,30,3]))
+    x.append(np.zeros([1]))
 
-    states = []
+    batch = []
+    for i in range(TIME_STEP*BATCH_SIZE):
+        batch.append(x)
+
+    # x = np.array(batch)
+
+    # torch_x = torch.from_numpy(x).float()
+    # torch_ev_data = torch.from_numpy(ev_data).float()
+    # output = model.forward(torch_x, torch_ev_data, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    # print(output[0])
+
+    states1 = []
+    states2 = []
     actions = []
     rewards = []
     next_states = []
 
-    s, a, r, ns = [], [], [], []
+    s1, s2, a, r, ns = [], [], [], [], []
 
-    s.append(x)
+    s1.append(x[0])
+    s2.append(x[1])
     a.append(1)
     r.append(0)
-    ns.append(x)
+    ns.append(x[0])
 
-    states.append(s)
+    states1.append(s1)
+    states2.append(s2)
     actions.append(a)
     rewards.append(r)
     next_states.append(ns)
 
-    states = torch.from_numpy(np.array(states)).float()
+    states1 = torch.from_numpy(np.array(states1)).float()
+    states2 = torch.from_numpy(np.array(states2)).float()
     actions = torch.from_numpy(np.array(actions)).long()
     rewards = torch.from_numpy(np.array(rewards)).float()
     next_states = torch.from_numpy(np.array(next_states)).float()
 
-    q_predicted_all, _ = model.forward(states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    q_predicted_all, _ = model.forward(states1, states2, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
 
-    print(actions[:,TIME_STEP-1].unsqueeze(dim=1))
+    # print(actions[:,TIME_STEP-1].unsqueeze(dim=1))
 
-    q_predicted = q_predicted_all.gather(dim=1,index=actions[:,TIME_STEP-1].unsqueeze(dim=1)).squeeze(dim=1)
-    print(q_predicted)
+    # q_predicted = q_predicted_all.gather(dim=1,index=actions[:,TIME_STEP-1].unsqueeze(dim=1)).squeeze(dim=1)
+    # print(q_predicted)
 
-    next_q_values, _ = model.forward(next_states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
-    next_q_state_values, _ = target.forward(next_states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    # next_q_values, _ = model.forward(next_states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    # next_q_state_values, _ = target.forward(next_states, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
 
-    print(next_q_state_values)
-    print(next_q_values)
+    # print(next_q_state_values)
+    # print(next_q_values)
 
-    next_q_value = next_q_state_values.gather(1, next_q_values.max(1)[1].unsqueeze(1)).squeeze(1)
+    # next_q_value = next_q_state_values.gather(1, next_q_values.max(1)[1].unsqueeze(1)).squeeze(1)
 
-    print(next_q_value)
+    # print(next_q_value)
 
-    expected_q_value = rewards[:,TIME_STEP-1] + 0.99 * next_q_value
-    print(expected_q_value)
+    # expected_q_value = rewards[:,TIME_STEP-1] + 0.99 * next_q_value
+    # print(expected_q_value)
     # print(next_q_values.max(1)[1].unsqueeze(1))
 
