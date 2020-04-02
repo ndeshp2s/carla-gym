@@ -9,7 +9,7 @@ from gym import error, spaces
 from experiments.trainer import Trainer
 from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv                                      
 from experiments.config import Config
-from rl_agents.DQN.ddqn import DDQNAgent
+from rl_agents.DQN.ddqncnnlstm import DDQNCNNLSTMAgent
 from environments.urban_environment.spawner import Spawner
 
 
@@ -26,7 +26,7 @@ def main(args):
 
     config.hyperparameters = {
         "learning_rate": 0.025,
-        "batch_size": 32,
+        "batch_size": 2,
         "sequence_length": 1,
         "buffer_size": int(1e5),
         "update_every_n_steps": 1,
@@ -41,7 +41,7 @@ def main(args):
     config.use_cuda = True
 
     config.number_of_episodes = 500
-    config.steps_per_episode = 500
+    config.steps_per_episode = 200
     config.previous_episode = 0
     config.total_steps = 160000
     config.pre_train_steps = 100
@@ -63,7 +63,7 @@ def main(args):
 
 
     # Initialize the agent
-    agent = DDQNAgent(config)
+    agent = DDQNCNNLSTMAgent(config)
 
     # Initialize spawner
     spawner = Spawner()
