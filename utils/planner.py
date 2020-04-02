@@ -32,7 +32,7 @@ class Planner(object):
 
         self.route_trace = self.global_planner.trace_route(start_waypoint.transform.location, end_waypoint.transform.location)
 
-        self.route_trace.pop(0)
+        #self.route_trace.pop(0)
 
         self.local_planner.set_global_plan(self.route_trace)
 
@@ -44,4 +44,7 @@ class Planner(object):
             self._vehicle.get_world().debug.draw_string(w[0].transform.location, 'o', draw_shadow=False,
                                        color=carla.Color(r=255, g=0, b=0), life_time=120.0,
                                        persistent_lines=True)
+
+    def done(self):
+        return self.local_planner.done()
 
