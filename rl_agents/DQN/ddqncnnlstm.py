@@ -113,7 +113,7 @@ class DDQNCNNLSTMAgent:
         state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
 
         # Query the network
-        model_output = self.local_network.forward(state_tensor, batch_size = batch_size, time_step = time_step, hidden_state = hidden_state, cell_state = cell_state)
+        model_output = self.local_network.forward(state_tensor, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state)
         hidden_state = model_output[1][0]
         cell_state = model_output[1][1]
 
