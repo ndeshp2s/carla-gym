@@ -34,6 +34,7 @@ class Trainer:
         episode_reward = 0
         episode_number = 0
         total_steps = 0
+        learning = False
 
         #data_vis = DataVisualization(x_min = 0, x_max = 30, y_min = -5, y_max = 25)
         
@@ -45,7 +46,7 @@ class Trainer:
             # Reset the environment and variables for new episode
             episode_reward = 0
             state = self.env.reset()
-            self.spawner.reset()
+            #self.spawner.reset()
 
             local_memory = []
 
@@ -79,7 +80,7 @@ class Trainer:
                 total_steps += 1
 
                 # Execute spwner step
-                self.spawner.run_step()
+                #self.spawner.run_step()
 
 
                 # Performing learning if minumum required experiences gathered
@@ -91,6 +92,8 @@ class Trainer:
 
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
+                    learning = True
+
 
                 if done:
                     self.spawner.destroy_all()
@@ -98,7 +101,7 @@ class Trainer:
 
                 # epsilon update
                 # Only after a few initial steps
-                if total_steps > self.config.hyperparameters["min_steps_before_learning"]:
+                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and learning:
                     epsilon = self.epsilon_decay(total_steps - self.config.hyperparameters["min_steps_before_learning"])
 
                 self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
