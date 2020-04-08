@@ -51,8 +51,8 @@ class UrbanEnv(CarlaGym):
 
         self.ego_vehicle = None
         self.current_speed = 0.0
-        self.max_allowed_speed = 15.0
-        self.max_reachable_speed = 20.0
+        self.max_allowed_speed = 20.0
+        self.max_reachable_speed = 25.0
 
         
         # Rendering related
@@ -208,7 +208,7 @@ class UrbanEnv(CarlaGym):
         # accelerate
         if action == 0:
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
-            desired_speed = current_speed + 0.1
+            desired_speed = current_speed + 0.2
             desired_speed *= 3.6
             self.current_speed = desired_speed
             self.planner.local_planner.set_speed(desired_speed)
@@ -219,7 +219,7 @@ class UrbanEnv(CarlaGym):
         # decelerate
         elif action == 1:
             current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
-            desired_speed = current_speed - 0.1
+            desired_speed = current_speed - 0.2
             desired_speed *= 3.6
             self.current_speed = desired_speed
             self.planner.local_planner.set_speed(desired_speed)
