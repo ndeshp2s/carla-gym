@@ -4,17 +4,17 @@ import numpy as np
 from experiments.config import Config
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 768):
+    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 128):
         super(NeuralNetwork, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.lstm_memory = lstm_memory
 
-        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 4)
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 2, stride = 2)
-        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1)
+        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 16, kernel_size = 4, stride = 2)
+        self.conv2 = nn.Conv2d(in_channels = 16, out_channels = 32, kernel_size = 2, stride = 2)
+        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 128, kernel_size = (7, 4), stride = 1)
 
-        self.lstm_layer = nn.LSTM(input_size = 768, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
+        self.lstm_layer = nn.LSTM(input_size = 128, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
         self.fc1 = nn.Linear(self.lstm_memory + 1, self.output_size)
         
@@ -25,7 +25,7 @@ class NeuralNetwork(nn.Module):
 
     def forward(self, x1, x2, batch_size, time_step, hidden_state, cell_state):
         # (N, C, H, W) batch size, input channel, input height, input width
-        x1 = x1.view(batch_size*time_step, self.input_size[2], self.input_size[1], self.input_size[0])
+        x1 = x1.view(batch_size*time_step, self.input_size[2], self.input_size[0], self.input_size[1])
         conv_out = self.conv1(x1)
         conv_out = self.relu(conv_out)
         conv_out = self.conv2(conv_out)
@@ -58,7 +58,7 @@ class NeuralNetwork(nn.Module):
 
 
 
-DEBUG = 0
+DEBUG = 1
 
 if DEBUG:
     import random
@@ -69,7 +69,7 @@ if DEBUG:
     TIME_STEP = 1
 
     # Dummy data
-    x = np.zeros([60,30,3])
+    x = np.zeros([30,20,3])
     batch = []
     for i in range(TIME_STEP*BATCH_SIZE):
         batch.append(x)
@@ -77,14 +77,14 @@ if DEBUG:
     ev_data = np.zeros([1, 1])
 
 
-    model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=768)
+    model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=128)
     hidden_state, cell_state = model.init_hidden_states(batch_size=1)
-    target = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=768)
+    target = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=128)
 
 
     # Dummy data
     x = []
-    x.append(np.zeros([60,30,3]))
+    x.append(np.zeros([30,20,3]))
     x.append(np.zeros([1]))
 
     batch = []
