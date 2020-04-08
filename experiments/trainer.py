@@ -36,7 +36,7 @@ class Trainer:
         total_steps = 0
         learning = False
 
-        #data_vis = DataVisualization(x_min = 0, x_max = 30, y_min = -5, y_max = 25)
+        #data_vis = DataVisualization(x_min = 0, x_max = 60, y_min = -5, y_max = 25)
         
         epsilon = self.config.hyperparameters["epsilon_start"]
 
@@ -46,7 +46,7 @@ class Trainer:
             # Reset the environment and variables for new episode
             episode_reward = 0
             state = self.env.reset()
-            #self.spawner.reset()
+            self.spawner.reset()
 
             local_memory = []
 
@@ -54,10 +54,12 @@ class Trainer:
 
 
             for step_num in range(self.config.steps_per_episode):
-                #data_vis.display(state)
+                #data_vis.display(state[0])
+                if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
+                    self.start_learning = True
                 
                 # Select action
-                action = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
+                action, hidden_state, cell_state = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
                                                 hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
 
                 if DEBUG:
@@ -67,8 +69,8 @@ class Trainer:
                 
                 # Execute action for 10 times
                 next_state, reward, done, info = self.env.step(action)
-                for i in range(9):
-                    next_state, reward, done, info = self.env.step(3)
+                # for i in range(9):
+                #     next_state, reward, done, info = self.env.step(3)
 
                 # Add experience to memory of local network
                 local_memory.append((state, action, reward, next_state, done))
@@ -80,7 +82,8 @@ class Trainer:
                 total_steps += 1
 
                 # Execute spwner step
-                #self.spawner.run_step()
+                if self.start_learning:
+                    self.spawner.run_step()
 
 
                 # Performing learning if minumum required experiences gathered
