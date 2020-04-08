@@ -122,7 +122,7 @@ class Spawner(object):
                 controller.start()
                 goal = self.get_goal(goal_points, p["start"])
                 controller.go_to_location(goal.location)
-                controller.set_max_speed(float(2.0))
+                controller.set_max_speed(round(random.uniform(0.2, 0.4), 2))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
@@ -140,7 +140,7 @@ class Spawner(object):
 
             ped_trans = ped.get_transform()
 
-            if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist):    
+            if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist, spawn = False):    
                 if p["controller"] is not None:
                     controller = self.world.get_actor(p["controller"])
                     if controller is not None:
@@ -186,6 +186,11 @@ class Spawner(object):
 
 
     def is_within_distance(self, tar_loc, cur_loc, rot, max_dist, min_dist, spawn = True):
+
+        if not spawn:
+            if abs(tar_loc.x - cur_loc.x) > carla_config.ped_max_dist or abs(tar_loc.y - cur_loc.y) > carla_config.ped_max_dist:
+                return False
+
         tar_vec = np.array([tar_loc.x - cur_loc.x, tar_loc.y - cur_loc.y])
         norm = np.linalg.norm(tar_vec)
 
@@ -219,11 +224,17 @@ class Spawner(object):
             start_wp = self.world.get_map().get_waypoint(start.location, project_to_road = True, lane_type = carla.LaneType.Any)
              
 
-            if (goal_wp.lane_id != start_wp.lane_id and goal_wp.road_id == start_wp.road_id):
+            if (goal_wp.lane_id ^ start_wp.lane_id) < 0 and goal_wp.road_id == start_wp.road_id and self.distance(goal, start) < 15.0:
                 return goal
             
         return random.choice(walker_goal_points)
 
+
+    def distance(self, source_transform, destination_transform):
+        dx = source_transform.location.x - destination_transform.location.x
+        dy = source_transform.location.y - destination_transform.location.y
+
+        return math.sqrt(dx * dx + dy * dy)
 
 
 
@@ -264,19 +275,20 @@ def main():
     world.set_pedestrians_cross_illegal_factor(0.0)
 
     # Spawn ego vehicle
-    sp = carla.Transform(carla.Location(x = 220.0, y =129.5, z = 0.1), carla.Rotation(yaw = 180))
+    sp = carla.Transform(carla.Location(x = 40.0, y = -1.8, z = 0.1), carla.Rotation(yaw = 180))
     bp = random.choice(world.get_blueprint_library().filter('vehicle.audi.etron'))
     bp.set_attribute('role_name', 'hero')
 
     veh = world.spawn_actor(bp, sp)
 
-    spawner = Spawner(client)
+    spawner = Spawner()
+    spawner.reset()
 
 
     try:
         while True:
 
-            spawner.run_step(veh.get_transform())
+            spawner.run_step(ev_trans = veh.get_transform())
 
     except KeyboardInterrupt:
         spawner.destroy_all()
