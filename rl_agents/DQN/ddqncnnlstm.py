@@ -129,4 +129,4 @@ class DDQNCNNLSTMAgent:
             #action = np.random.randint(0, 4)
             action = random.randrange(4)
 
-        return action
+        return action, hidden_state, cell_state
