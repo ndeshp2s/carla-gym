@@ -69,8 +69,8 @@ class Trainer:
                 
                 # Execute action for 10 times
                 next_state, reward, done, info = self.env.step(action)
-                # for i in range(9):
-                #     next_state, reward, done, info = self.env.step(3)
+                # for i in range(3):
+                #     next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
                 local_memory.append((state, action, reward, next_state, done))
@@ -90,12 +90,11 @@ class Trainer:
                 loss = 0
 
                 if total_steps > self.config.hyperparameters["min_steps_before_learning"] and total_steps % self.config.learing_frequency == 0 \
-                and self.agent.memory.__len__() > self.config.hyperparameters["batch_size"]:
+                and self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
                     loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], time_step = self.config.hyperparameters["sequence_length"], step = total_steps)
 
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
-                    learning = True
 
 
                 if done:
@@ -104,7 +103,7 @@ class Trainer:
 
                 # epsilon update
                 # Only after a few initial steps
-                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and learning:
+                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and self.start_learning:
                     epsilon = self.epsilon_decay(total_steps - self.config.hyperparameters["min_steps_before_learning"])
 
                 self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
