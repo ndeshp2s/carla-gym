@@ -265,7 +265,7 @@ class UrbanEnv(CarlaGym):
 
         # Run some initial steps
         for i in range(10):
-            self.step(2)
+            self.step(0)
 
         state = self._get_observation()
 

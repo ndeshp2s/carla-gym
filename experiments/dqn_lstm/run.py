@@ -17,7 +17,7 @@ from environments.urban_environment.spawner import Spawner
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test1'
+    experiment_dir = 'experiments/dqn_lstm/test3'
 
     # Load configuration
     config = Config()
@@ -28,8 +28,8 @@ def main(args):
         "learning_rate": 0.0025,
         "batch_size": 32,
         "sequence_length": 10,
-        "buffer_size": int(1e4),
-        "update_every_n_steps": 100,
+        "buffer_size": 20000,
+        "update_every_n_steps": 1000,
         "min_steps_before_learning": 500,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
@@ -40,8 +40,8 @@ def main(args):
     
     config.use_cuda = True
 
-    config.number_of_episodes = 1000
-    config.steps_per_episode = 50
+    config.number_of_episodes = 100
+    config.steps_per_episode = 500
     config.previous_episode = 0
     config.total_steps = 50000
     config.pre_train_steps = 1
