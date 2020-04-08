@@ -249,7 +249,7 @@ class UrbanEnv(CarlaGym):
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings(rendering = carla_config.render)
+        self.apply_settings(fps = 1.0, no_rendering = not carla_config.render)
 
         self.world.get_map().generate_waypoints(1.0)
 
@@ -297,7 +297,6 @@ class UrbanEnv(CarlaGym):
         self.planner = Planner()
         self.planner.initialize(self.ego_vehicle)
         self.planner.set_destination((carla_config.ev_goal_x, carla_config.ev_goal_y, carla_config.ev_goal_z))
-        self.planner.view_plan()
 
 
     def spawn_ego_vehicle(self, bp = None, sp = None):
