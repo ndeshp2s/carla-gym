@@ -31,7 +31,6 @@ class CarlaGym(gym.Env):
 
 
             if process.name().lower().startswith(binary.split('.')[0].lower()):
-                print(process)
                 try:
                     process.terminate()
                 except:
@@ -101,13 +100,13 @@ class CarlaGym(gym.Env):
         
 
 
-    def apply_settings(self, fps = 10.0, rendering = True):
+    def apply_settings(self, fps = 10.0, no_rendering = False):
 
         self.delta_seconds = 1.0 / fps
         self._settings = self.world.get_settings()
         self.frame = self.world.apply_settings(carla.WorldSettings(
-            no_rendering_mode=False,
-            synchronous_mode=True,
+            no_rendering_mode = no_rendering,
+            synchronous_mode = True,
             fixed_delta_seconds=self.delta_seconds))
 
 

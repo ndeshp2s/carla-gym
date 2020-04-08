@@ -259,7 +259,7 @@ class UrbanEnv(CarlaGym):
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings(rendering = carla_config.render)
+        self.apply_settings(fps = 1.0, no_rendering = not carla_config.render)
 
         self.world.get_map().generate_waypoints(1.0)
 
