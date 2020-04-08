@@ -33,6 +33,7 @@ class Planner(object):
         self.route_trace = self.global_planner.trace_route(start_waypoint.transform.location, end_waypoint.transform.location)
 
         #self.route_trace.pop(0)
+        #assert self.route_trace
 
         self.local_planner.set_global_plan(self.route_trace)
 
