@@ -4,17 +4,17 @@ import numpy as np
 from experiments.config import Config
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 128):
+    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 256):
         super(NeuralNetwork, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.lstm_memory = lstm_memory
 
-        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 16, kernel_size = 4, stride = 2)
-        self.conv2 = nn.Conv2d(in_channels = 16, out_channels = 32, kernel_size = 2, stride = 2)
-        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 128, kernel_size = (7, 4), stride = 1)
+        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 2)
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 2, stride = 2)
+        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 256, kernel_size = (7, 4), stride = 1)
 
-        self.lstm_layer = nn.LSTM(input_size = 128, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
+        self.lstm_layer = nn.LSTM(input_size = 256, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
         self.fc1 = nn.Linear(self.lstm_memory + 1, self.output_size)
         
