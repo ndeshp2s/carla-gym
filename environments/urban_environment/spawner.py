@@ -98,6 +98,15 @@ class Spawner(object):
             if len(spawn_points) == 0 or counter >= self.num_of_ped:
                 return
 
+            # Add pedestrian
+        	ped_bp = random.choice(self.world.get_blueprint_library().filter("walker.pedestrian.*"))
+        	ped_id = next((index for index, value in enumerate(self.pedestrian_ids) if value == 0), None)
+
+        	ped_bp.set_attribute('role_name', str(ped_id + 1))
+
+        	ped = None
+        	sp = carla.Transform()
+
             sp = random.choice(spawn_points)
             sp.location.x += random.uniform(-0.5, 0.5)
             sp.location.y += random.uniform(-0.5, 0.5)
