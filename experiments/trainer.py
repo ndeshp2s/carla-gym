@@ -70,8 +70,8 @@ class Trainer:
                 
                 # Execute action for 10 times
                 next_state, reward, done, info = self.env.step(action)
-                # for i in range(3):
-                #     next_state, reward, done, info = self.env.step(action)
+                for i in range(3):
+                    next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
                 local_memory.append((state, action, reward, next_state, done))

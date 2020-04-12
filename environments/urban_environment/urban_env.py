@@ -166,8 +166,8 @@ class UrbanEnv(CarlaGym):
         elif ev_speed > self.max_allowed_speed:
             d_reward = -5
 
-        # elif ev_speed <= 0.0:
-        #     d_reward = -2
+        elif ev_speed <= 0.0:
+            d_reward = -2
 
         ## Reward(penalty) for collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')

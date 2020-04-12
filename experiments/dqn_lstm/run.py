@@ -17,7 +17,7 @@ from environments.urban_environment.spawner import Spawner
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test3'
+    experiment_dir = 'experiments/dqn_lstm/test4'
 
     # Load configuration
     config = Config()
@@ -25,10 +25,10 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.00025,
-        "batch_size": 128,
+        "learning_rate": 0.0025,
+        "batch_size": 32,
         "sequence_length": 10,
-        "buffer_size": 10000,
+        "buffer_size": 20000,
         "update_every_n_steps": 10000,
         "min_steps_before_learning": 500,
         "epsilon_start": 1,
