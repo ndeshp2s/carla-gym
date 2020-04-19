@@ -4,7 +4,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from experiments.config import Config
-from experiments.util import EpsilonTracker, DataVisualization
+#from experiments.util import EpsilonTracker, DataVisualization
 
 DEBUG = 0
 class Trainer:
@@ -36,18 +36,19 @@ class Trainer:
         total_steps = 0
         learning = False
 
-        #data_vis = DataVisualization(x_min = 0, x_max = 60, y_min = -5, y_max = 25)
+    #     #data_vis = DataVisualization(x_min = 0, x_max = 60, y_min = -5, y_max = 25)
         
         epsilon = self.config.hyperparameters["epsilon_start"]
 
-        #for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
+    #     #for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
         
         while total_steps < self.config.total_steps:
 
             # Reset the environment and variables for new episode
             episode_reward = 0
             state = self.env.reset()
-            self.spawner.reset()
+            if self.config.spawner:
+            	self.spawner.reset()
 
             local_memory = []
 
@@ -68,7 +69,7 @@ class Trainer:
                     action = int(action)
 
                 
-                # Execute action for 10 times
+                # Execute action for 4 times
                 next_state, reward, done, info = self.env.step(action)
                 for i in range(3):
                     next_state, reward, done, info = self.env.step(action)
@@ -84,7 +85,7 @@ class Trainer:
                     total_steps += 1
 
                 # Execute spwner step
-                if self.start_learning:
+                if self.start_learning and self.config.spawner::
                     self.spawner.run_step()
 
 
@@ -100,7 +101,8 @@ class Trainer:
 
 
                 if done:
-                    self.spawner.destroy_all()
+                	if self.config.spawner:
+                    	self.spawner.destroy_all()
                     break
 
                 # epsilon update
@@ -154,22 +156,22 @@ class Trainer:
         self.env.close()
 
 
-    def load_checkpoint(self, file = None, checkpoint_dir = None):
-        checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
+    # def load_checkpoint(self, file = None, checkpoint_dir = None):
+    #     checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
 
-        # Load network weights and biases
-        self.agent.local_network.load_state_dict(checkpoint['state_dict'])
-        self.agent.target_network.load_state_dict(checkpoint['state_dict'])
-        self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.previous_episode = checkpoint['episode']
-        self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-        self.steps = checkpoint['total_steps']
+    #     # Load network weights and biases
+    #     self.agent.local_network.load_state_dict(checkpoint['state_dict'])
+    #     self.agent.target_network.load_state_dict(checkpoint['state_dict'])
+    #     self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
+    #     self.previous_episode = checkpoint['episode']
+    #     self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
+    #     self.steps = checkpoint['total_steps']
 
-        self.agent.local_network.train()
-        self.agent.target_network.train()
+    #     self.agent.local_network.train()
+    #     self.agent.target_network.train()
 
-    def retrain(self):
-        self.train(self.previous_episode, self.steps)
+    # def retrain(self):
+    #     self.train(self.previous_episode, self.steps)
 
 
 
