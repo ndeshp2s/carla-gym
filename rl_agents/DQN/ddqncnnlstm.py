@@ -38,7 +38,8 @@ class DDQNCNNLSTMAgent:
         self.memory.add_episode(episode)
 
 
-    def learn(self, batch_size, time_step, experiences = None, step = 0):
+    def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = True):
+
 
         hidden_batch, cell_batch = self.local_network.init_hidden_states(batch_size = batch_size)
 
@@ -106,10 +107,26 @@ class DDQNCNNLSTMAgent:
         # update params
         self.optimizer.step()
 
-        if step % self.hyperparameters["update_every_n_steps"] == 0:
-            self.target_network.load_state_dict(self.local_network.state_dict())
+        # Update target network
+        if soft_update:
+            self.soft_update(self.local_network, self.target_network, self.hyperparameters["tau"])
+
+        else:
+            self.hard_update(step)
+            
 
         return loss.item()
+
+
+    def soft_update(self, local_network, target_network, tau):
+
+        for target_param, local_param in zip(target_network.parameters(), local_network.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1 - tau)*target_param.data)
+
+
+    def hard_update(self, step = 0):
+        if step % self.hyperparameters["update_every_n_steps"] == 0:
+            self.target_network.load_state_dict(self.local_network.state_dict())
 
 
     def pick_action(self, state, batch_size, time_step, hidden_state, cell_state, epsilon):
