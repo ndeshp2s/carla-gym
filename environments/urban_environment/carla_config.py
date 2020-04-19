@@ -42,17 +42,17 @@ num_of_ped = 3
 HEIGHT = 1
 WIDTH = 4*num_of_ped
 N_CHANNELS = 0
-grid_height = 30
-grid_width = 20
+grid_height = 60
+grid_width = 30
 features = 3
 lane_types = 3# Driving(road)-1, sidewalk(shoulder)-2, crosswalk-3 
 
 x_min = -5
-x_max = 25
-x_size = 30
-y_min = -10
-y_max = 10
-y_size = 20
+x_max = 55
+x_size = 60
+y_min = -15
+y_max = 15
+y_size = 30
 
 # Pedestrian behavior probalities
 # Four types of behaviors:
