@@ -71,7 +71,7 @@ class UrbanEnv(CarlaGym):
 
         self.tick()
 
-        state = self._get_observation()
+        state = self._get_observation(action)
 
         reward, done, info = self._get_reward()
 
@@ -83,15 +83,16 @@ class UrbanEnv(CarlaGym):
         return state, reward, done, info 
 
 
-    def _get_observation(self):
+    def _get_observation(self, action = 0):
         tensor1 = np.zeros([self.state_y, self.state_x, self.channel])
-        tensor2 = np.zeros([1])
+        tensor2 = np.zeros([2])
 
         # Fill ego vehicle information
         ev_trans = self.ego_vehicle.get_transform()
 
         ev_speed = get_speed(self.ego_vehicle)
         tensor2[0] = self.normalize_data(ev_speed, 0.0, self.max_reachable_speed)
+        tensor2[1] = action
         
 
         # Fill pedestrian information
@@ -265,7 +266,9 @@ class UrbanEnv(CarlaGym):
 
         # Run some initial steps
         for i in range(10):
-            self.step(0)
+            self.step(3)
+        # for i in range(10):
+        #     self.step(0)
 
         state = self._get_observation()
 
@@ -413,7 +416,7 @@ class UrbanEnv(CarlaGym):
             #         target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
                     #target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
             if target_waypoint.lane_type == carla.LaneType.Driving and target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
-                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 5.0):
+                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 4.0):
                 #if self.distance(self.ego_vehicle.get_transform(), target.get_transform()) < 10.0:
                     return (True, True, target)
 
