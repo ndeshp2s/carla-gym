@@ -43,10 +43,8 @@ class NeuralNetwork(nn.Module):
         h_n = lstm_out[1][0]
         c_n = lstm_out[1][1]
 
-        output2 = x2
-        #output2 = x2[:, time_step - 1]
-        #output2 = output2.view(batch_size, 1)
-        output2 = x2.view(batch_size*time_step, 2)
+        x2 = x2.view(batch_size, time_step, 2)
+        output2 = x2[:, time_step - 1, :]
 
         output = torch.cat((output2, output1), dim = 1)
         output = self.fc1(output)
