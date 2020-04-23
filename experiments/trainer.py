@@ -24,6 +24,7 @@ class Trainer:
         self.epsilon = 0
 
         self.start_learning = False
+        self.reset_epsilon = True
 
         self.spawner = spawner
 
@@ -33,12 +34,12 @@ class Trainer:
         rewards = []
         episode_reward = 0
         episode_number = previous_episode + 1
-        total_steps = 0
+        total_steps = total_steps
         learning = False
 
     #     #data_vis = DataVisualization(x_min = 0, x_max = 60, y_min = -5, y_max = 25)
         
-        epsilon = self.config.hyperparameters["epsilon_start"]
+        epsilon = self.config.hyperparameters["epsilon_before_learning"]
 
     #     #for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
         
@@ -48,7 +49,7 @@ class Trainer:
             episode_reward = 0
             state = self.env.reset()
             if self.config.spawner:
-            	self.spawner.reset()
+                self.spawner.reset()
 
             local_memory = []
 
@@ -59,6 +60,11 @@ class Trainer:
                 #data_vis.display(state[0])
                 if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
                     self.start_learning = True
+
+                    if self.reset_epsilon:
+                        epsilon = self.config.hyperparameters["epsilon_start"]
+                        self.reset_epsilon = False
+
                 
                 # Select action
                 action, hidden_state, cell_state = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
@@ -70,8 +76,7 @@ class Trainer:
 
                 
                 # Execute action for 4 times
-                next_state, reward, done, info = self.env.step(action)
-                for i in range(3):
+                for i in range(4):
                     next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
@@ -85,7 +90,7 @@ class Trainer:
                     total_steps += 1
 
                 # Execute spwner step
-                if self.start_learning and self.config.spawner::
+                if self.config.spawner:
                     self.spawner.run_step()
 
 
@@ -101,8 +106,8 @@ class Trainer:
 
 
                 if done:
-                	if self.config.spawner:
-                    	self.spawner.destroy_all()
+                    if self.config.spawner:
+                        self.spawner.destroy_all()
                     break
 
                 # epsilon update
@@ -156,22 +161,24 @@ class Trainer:
         self.env.close()
 
 
-    # def load_checkpoint(self, file = None, checkpoint_dir = None):
-    #     checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
+    def load_checkpoint(self, file = None, checkpoint_dir = None):
+        checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
 
-    #     # Load network weights and biases
-    #     self.agent.local_network.load_state_dict(checkpoint['state_dict'])
-    #     self.agent.target_network.load_state_dict(checkpoint['state_dict'])
-    #     self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
-    #     self.previous_episode = checkpoint['episode']
-    #     self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-    #     self.steps = checkpoint['total_steps']
+        # Load network weights and biases
+        print("Loading old network parameters")
+        self.agent.local_network.load_state_dict(checkpoint['state_dict'])
+        self.agent.target_network.load_state_dict(checkpoint['state_dict'])
+        self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.previous_episode = checkpoint['episode']
+        self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
+        self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
+        self.steps = checkpoint['total_steps']
 
-    #     self.agent.local_network.train()
-    #     self.agent.target_network.train()
+        self.agent.local_network.train()
+        self.agent.target_network.train()
 
-    # def retrain(self):
-    #     self.train(self.previous_episode, self.steps)
+    def retrain(self):
+        self.train(self.previous_episode, self.steps)
 
 
 
