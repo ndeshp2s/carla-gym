@@ -3,51 +3,52 @@ import math
 import torch
 
 from experiments.config import Config
+from agents.tools.misc import get_speed
 
-
-DEBUG = 0
-class Trainer:
+DEBUG = 1
+class Tester:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env
         self.agent = agent
         self.config = config
         self.spawner = spawner
 
-        self.config.
 
     def test(self):
 
-    	episode_number = 0
-    	episode_reward = 0
+        episode_number = 0
+        episode_reward = 0
 
-    	epsilon = 0
+        epsilon = 0
 
-    	for i in range(0, 10):
+        for i in range(0, 10):
 
-    		state = self.env.reset()
-    		self.spawner.reset()
+            state = self.env.reset()
+            self.spawner.reset()
 
-    		hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
+            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
 
-    		for step_num in range(self.config.steps_per_episode):
-    			# Select action
-                action = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
+            for step_num in range(self.config.steps_per_episode):
+                # Select action
+                action, hidden_state, cell_state = self.agent.pick_action(state = state, batch_size = 1, time_step = 1,\
                                                 hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
 
                 if DEBUG:
                     input('Enter to continue: ')
+                print(action, get_speed(self.env.ego_vehicle))
 
                 # Execute action for 10 times
                 next_state, reward, done, info = self.env.step(action)
-                for i in range(9):
-                    next_state, reward, done, info = self.env.step(3)
+                # for i in range(9):
+                #     next_state, reward, done, info = self.env.step(3)
 
                 # Update parameters
                 state = next_state
                 episode_reward += reward
 
                 # Execute spwner step
-                self.spawner.run_step()
+                if self.config.spawner:
+                    self.spawner.run_step()
 
 
                 if done:
