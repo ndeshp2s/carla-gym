@@ -25,6 +25,7 @@ from environments.urban_environment import carla_config
 from environments.urban_environment.crosswalk_zones import within_crosswalk
 from utils.renderer import Renderer
 from utils.planner import Planner
+from utils.miscellaneous import pedestrian_relative_position
 
 
 class UrbanEnv(CarlaGym):
@@ -51,6 +52,7 @@ class UrbanEnv(CarlaGym):
 
         self.ego_vehicle = None
         self.current_speed = 0.0
+        self.previous_speed = 0.0
         self.max_allowed_speed = 20.0
         self.max_reachable_speed = 25.0
 
@@ -91,6 +93,8 @@ class UrbanEnv(CarlaGym):
         ev_trans = self.ego_vehicle.get_transform()
 
         ev_speed = get_speed(self.ego_vehicle)
+        if ev_speed < 0.0:
+            ev_speed = 0.0
         tensor2[0] = self.normalize_data(ev_speed, 0.0, self.max_reachable_speed)
         tensor2[1] = action
         
@@ -165,20 +169,24 @@ class UrbanEnv(CarlaGym):
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
         elif ev_speed > self.max_allowed_speed:
-            d_reward = -5
+            d_reward = -1.0
 
         elif ev_speed <= 0.0:
-            d_reward = -2
+            d_reward = -1.0
 
         ## Reward(penalty) for collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
         collision, near_collision, pedestrian = self.is_collision(pedestrian_list)
 
-        if collision is True:
+        if collision is True and ev_speed > 0.0:
             #print('collision')
             c_reward = -10
             done = True
             info = 'Collision'
+
+        elif collision is True:
+            done = True
+            info = 'Ped-Collision'
 
         # elif near_collision is True:
         #     #print('near collision')
@@ -201,45 +209,113 @@ class UrbanEnv(CarlaGym):
 
 
     def _take_action(self, action, sp):
+                # control = self.planner.run_step()
+        # self.ego_vehicle.apply_control(control)
 
-        mps_kmph_conversion = 3.6
+        # self.current_speed = get_speed(self.ego_vehicle)
 
-        target_speed = 0.0
+        # if action == 0:
+        #     desired_speed = 0
+        #     if self.current_speed < self.previous_speed:
+        #         desired_speed = self.previous_speed + 1.0
+        #     elif self.current_speed > self.previous_speed:
+        #         desired_speed = self.current_speed + 1.0
 
-        # accelerate
-        if action == 0:
-            current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
-            desired_speed = current_speed + 0.2
-            desired_speed *= 3.6
-            self.current_speed = desired_speed
-            self.planner.local_planner.set_speed(desired_speed)
+        # elif action == 1:
+        #     desired_speed = 0
+        #     if self.current_speed > self.previous_speed:
+        #         desired_speed = self.previous_speed - 1.0
+        #     elif self.current_speed < self.previous_speed:
+        #         desired_speed = self.current_speed - 1.0
+
+        # elif action == 2:
+        #     desired_speed = 0
+
+        # elif action == 3:
+        #     desired_speed = -1
+
+
+        # self.planner.local_planner.set_speed(desired_speed)
+        # control = self.planner.run_step()
+        # control.brake = 0.0
+        # self.ego_vehicle.apply_control(control)
+
+        # print(self.current_speed, self.previous_speed, desired_speed)
+        # if desired_speed != -1:
+        #     self.previous_speed = desired_speed
+
+
+
+
+
+        desired_speed = self.planner.local_planner.get_target_speed()
+        if action == 1:
+            desired_speed += 1
+            self.planner.local_planner.set_speed(1)
             control = self.planner.run_step()
             control.brake = 0.0
             self.ego_vehicle.apply_control(control)
 
-        # decelerate
-        elif action == 1:
-            current_speed = get_speed(self.ego_vehicle)/mps_kmph_conversion
-            desired_speed = current_speed - 0.2
-            desired_speed *= 3.6
-            self.current_speed = desired_speed
-            self.planner.local_planner.set_speed(desired_speed)
+        elif action == 2:
+            desired_speed -= 1
+            self.planner.local_planner.set_speed(-1)
             control = self.planner.run_step()
             control.brake = 0.0
             self.ego_vehicle.apply_control(control)
 
+        elif action == 3:
+            self.planner.local_planner.set_speed(0)
+            control = self.planner.run_step()
+            control.brake = 1.0
+            self.ego_vehicle.apply_control(control)
 
-        elif action == 2: # emergency stop
-            self.current_speed = 0
-            self.emergency_stop()
+        elif action == 0:
+            control = self.planner.run_step()
+            control.brake = 0.0
+            self.ego_vehicle.apply_control(control)
+        # control = self.planner.run_step()
+        # self.ego_vehicle.apply_control(control)
+
+        #mps_kmph_conversion = 3.6
+
+        # target_speed = 0.0
+
+        # # accelerate
+        # if action == 1:
+        #     current_speed  = get_speed(self.ego_vehicle)
+        #     desired_speed = current_speed + 1
+        #     #desired_speed *= 3.6
+        #     self.current_speed = desired_speed
+        #     print('current speed desired speed: ', current_speed, desired_speed)
+        #     self.planner.local_planner.set_speed(desired_speed)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     self.ego_vehicle.apply_control(control)
+
+        # # decelerate
+        # elif action == 2:
+        #     current_speed = get_speed(self.ego_vehicle)
+        #     desired_speed = current_speed - 1
+        #     #desired_speed *= 3.6
+        #     self.current_speed = desired_speed
+        #     print('current speed desired speed: ', current_speed, desired_speed)
+        #     self.planner.local_planner.set_speed(desired_speed)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     self.ego_vehicle.apply_control(control)
+
+
+        # elif action == 3: # emergency stop
+        #     self.current_speed = 0
+        #     self.emergency_stop()
 
         
-        # speed tracking
-        elif action == 3:
-            self.planner.local_planner.set_speed(self.current_speed)
-            control = self.planner.run_step()
-            control.brake = 0.0
-            self.ego_vehicle.apply_control(control)
+        # # speed tracking
+        # elif action == 0:
+        #     #self.planner.local_planner.set_speed(self.current_speed)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     self.ego_vehicle.apply_control(control)
 
 
     def emergency_stop(self):
@@ -260,15 +336,17 @@ class UrbanEnv(CarlaGym):
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings(fps = 1.0, no_rendering = not carla_config.render)
+        self.apply_settings(fps = 10.0, no_rendering = not carla_config.render)
 
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(10):
-            self.step(3)
         # for i in range(10):
-        #     self.step(0)
+        #     self.step(2)
+        for i in range(10):
+            self.step(3)       
+        for i in range(10):
+            self.step(2)
 
         state = self._get_observation()
 
@@ -416,8 +494,11 @@ class UrbanEnv(CarlaGym):
             #         target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
                     #target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
             if target_waypoint.lane_type == carla.LaneType.Driving and target_waypoint.lane_id == ego_vehicle_waypoint.lane_id:
-                if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 4.0):
+                #if is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 4.0):
                 #if self.distance(self.ego_vehicle.get_transform(), target.get_transform()) < 10.0:
+                ped_loc = pedestrian_relative_position(ped_trans = target.get_transform(), ev_trans = self.ego_vehicle.get_transform())
+
+                if abs(ped_loc[0]) < 3.5 and abs(ped_loc[1]) < 1.4:
                     return (True, True, target)
 
             # if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \

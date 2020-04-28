@@ -55,15 +55,14 @@ class Trainer:
 
             hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
 
-
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
                 if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
                     self.start_learning = True
 
-                    if self.reset_epsilon:
-                        epsilon = self.config.hyperparameters["epsilon_start"]
-                        self.reset_epsilon = False
+                    # if self.reset_epsilon:
+                    #     epsilon = self.config.hyperparameters["epsilon_start"]
+                    #     self.reset_epsilon = False
 
                 
                 # Select action
@@ -71,8 +70,9 @@ class Trainer:
                                                 hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
 
                 if DEBUG:
-                    action = input('Enter to continue: ')
-                    action = int(action)
+                    #action = input('Enter to continue: ')
+                    #action = int(action)
+                    input('Enter to continue: ')
 
                 
                 # Execute action for 4 times
@@ -112,8 +112,8 @@ class Trainer:
 
                 # epsilon update
                 # Only after a few initial steps
-                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and self.start_learning:
-                    epsilon = self.epsilon_decay(total_steps - self.config.hyperparameters["min_steps_before_learning"])
+                if self.start_learning:
+                    epsilon = self.epsilon_decay(total_steps)
 
                     self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
 
@@ -170,8 +170,8 @@ class Trainer:
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
         self.previous_episode = checkpoint['episode']
-        self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-        self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
+        #self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
+        #self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
         self.steps = checkpoint['total_steps']
 
         self.agent.local_network.train()
