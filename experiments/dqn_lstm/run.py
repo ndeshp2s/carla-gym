@@ -22,12 +22,13 @@ from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv
 from rl_agents.DQN.ddqncnnlstm import DDQNCNNLSTMAgent 
 from environments.urban_environment.spawner import Spawner
 from experiments.trainer import Trainer
+from experiments.tester import Tester
 
 def main(args):
     None
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test6'
+    experiment_dir = 'experiments/dqn_lstm/speed6'
 
     # Load configuration
     config = Config()
@@ -39,10 +40,11 @@ def main(args):
         "batch_size": 32,
         "sequence_length": 1,
         "buffer_size": 10000,
-        "update_every_n_steps": 10000,
+        "update_every_n_steps": 1000,
         "min_steps_before_learning": 1,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
+        "epsilon_before_learning": 1.0,
         "epsilon_decay": 1e-4,
         "discount_rate": 0.99,
         "tau": 0.001,
@@ -51,7 +53,7 @@ def main(args):
     config.use_cuda = True
 
     config.number_of_episodes = 100
-    config.steps_per_episode = 500
+    config.steps_per_episode = 300
     config.previous_episode = 0
     config.total_steps = 50000
     config.pre_train_steps = 1
@@ -81,6 +83,7 @@ def main(args):
 
     if args.train:
         trainer = Trainer(env, agent, spawner, config)
+        #trainer.load_checkpoint(args.checkpoint_file)
 
         try:
             trainer.train()
@@ -93,39 +96,39 @@ def main(args):
                 trainer.close()
                 os._exit(0)
 
-    # elif args.retrain:
-    #     if args.checkpoint_file is None:
-    #         print(' ---------- Please mention checkoutpoint file name ----------')
-    #         return
+    elif args.retrain:
+        if args.checkpoint_file is None:
+            print(' ---------- Please mention checkoutpoint file name ----------')
+            return
         
-    #     trainer = Trainer(env, agent, spawner, config)
-    #     trainer.load_checkpoint(args.checkpoint_file)
+        trainer = Trainer(env, agent, spawner, config)
+        trainer.load_checkpoint(args.checkpoint_file)
 
-    #     try:
-    #         trainer.retrain()
+        try:
+            trainer.retrain()
 
-    #     except KeyboardInterrupt:
-    #         try:
-    #             trainer.close()
-    #             sys.exit(0)
-    #         except SystemExit:
-    #             trainer.close()
-    #             os._exit(0)
+        except KeyboardInterrupt:
+            try:
+                trainer.close()
+                sys.exit(0)
+            except SystemExit:
+                trainer.close()
+                os._exit(0)
 
-    # elif args.test:
-    #     tester = Tester(env, agent, spawner, config)
-    #     tester.load_checkpoint(args.checkpoint_file)
+    elif args.test:
+        tester = Tester(env, agent, spawner, config)
+        tester.load_checkpoint(args.checkpoint_file)
 
-    #     try:
-    #         tester.test()
+        try:
+            tester.test()
 
-    #     except KeyboardInterrupt:
-    #         try:
-    #             tester.close()
-    #             sys.exit(0)
-    #         except SystemExit:
-    #             tester.close()
-    #             os._exit(0)
+        except KeyboardInterrupt:
+            try:
+                tester.close()
+                sys.exit(0)
+            except SystemExit:
+                tester.close()
+                os._exit(0)
 
 
 if __name__ == '__main__':
