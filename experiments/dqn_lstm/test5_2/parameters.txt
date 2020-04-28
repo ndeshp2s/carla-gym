@@ -1,0 +1,20 @@
+- learning rate: 0.0025
+- batch size: 32
+- sequence length: 8 
+- buffer size: 10000
+- epsilon start: 1.0
+- epsilon end: 0.1
+- epsilon decay: 1e-4
+- tau: 0.001
+- steps per episode: 300
+- total step = 50000
+- update every n steps: 1000
+-NeuralNetwork(
+  (conv1): Conv2d(3, 32, kernel_size=(4, 4), stride=(2, 2))
+  (conv2): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2))
+  (conv3): Conv2d(64, 64, kernel_size=(2, 2), stride=(2, 2))
+  (conv4): Conv2d(64, 64, kernel_size=(7, 3), stride=(1, 1))
+  (lstm_layer): LSTM(256, 256, batch_first=True)
+  (fc1): Linear(in_features=258, out_features=4, bias=True)
+  (relu): ReLU()
+)
