@@ -95,6 +95,7 @@ class UrbanEnv(CarlaGym):
         ev_speed = get_speed(self.ego_vehicle)
         if ev_speed < 0.0:
             ev_speed = 0.0
+        ev_speed = round(ev_speed, 2)
         tensor2[0] = self.normalize_data(ev_speed, 0.0, self.max_reachable_speed)
         tensor2[1] = action
         
@@ -160,10 +161,13 @@ class UrbanEnv(CarlaGym):
         done = False
         info = 'Done'
 
-        total_reward = d_reward = nc_reward = c_reward = 0
+        total_reward = d_reward = nc_reward = c_reward = 0.0
 
         # Reward for speed 
         ev_speed = get_speed(self.ego_vehicle)
+        if ev_speed < 0.0:
+            ev_speed = 0.0
+        ev_speed = round(ev_speed, 2)
 
         if ev_speed > 0.0 and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
@@ -173,7 +177,7 @@ class UrbanEnv(CarlaGym):
 
         elif ev_speed <= 0.0:
             d_reward = -1.0
-
+        
         ## Reward(penalty) for collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
         collision, near_collision, pedestrian = self.is_collision(pedestrian_list)
@@ -204,6 +208,7 @@ class UrbanEnv(CarlaGym):
 
 
         total_reward = d_reward + nc_reward + c_reward
+        total_reward = round(total_reward, 2)
 
         return total_reward, done, info
 
@@ -249,29 +254,35 @@ class UrbanEnv(CarlaGym):
 
 
         desired_speed = self.planner.local_planner.get_target_speed()
-        if action == 1:
+        if action == 0:
             desired_speed += 1
             self.planner.local_planner.set_speed(1)
             control = self.planner.run_step()
             control.brake = 0.0
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 2:
+        elif action == 1:
             desired_speed -= 1
             self.planner.local_planner.set_speed(-1)
             control = self.planner.run_step()
             control.brake = 0.0
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 3:
+        elif action == 2:
             self.planner.local_planner.set_speed(0)
             control = self.planner.run_step()
             control.brake = 1.0
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 0:
+        elif action == 3:
             control = self.planner.run_step()
             control.brake = 0.0
+            if self.get_ego_speed() < 1.0:
+                control.brake = 1
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
         # control = self.planner.run_step()
         # self.ego_vehicle.apply_control(control)
@@ -343,7 +354,7 @@ class UrbanEnv(CarlaGym):
         # Run some initial steps
         # for i in range(10):
         #     self.step(2)
-        for i in range(10):
+        for i in range(20):
             self.step(3)       
         for i in range(10):
             self.step(2)
@@ -518,4 +529,10 @@ class UrbanEnv(CarlaGym):
 
 
     def get_ego_speed(self):
-        return get_speed(self.ego_vehicle)
+        ev_speed = get_speed(self.ego_vehicle)
+        ev_speed = round(ev_speed, 2)
+
+        if ev_speed <= 0.0:
+            ev_speed = 0.0
+        
+        return ev_speed
