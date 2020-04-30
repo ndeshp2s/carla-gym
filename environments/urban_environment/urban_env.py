@@ -253,37 +253,37 @@ class UrbanEnv(CarlaGym):
 
 
 
-        desired_speed = self.planner.local_planner.get_target_speed()
-        if action == 0:
-            desired_speed += 1
-            self.planner.local_planner.set_speed(1)
-            control = self.planner.run_step()
-            control.brake = 0.0
-            control.throttle = round(control.throttle, 2)
-            self.ego_vehicle.apply_control(control)
+        # desired_speed = self.planner.local_planner.get_target_speed()
+        # if action == 1:
+        #     desired_speed += 1
+        #     self.planner.local_planner.set_speed(1)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
 
-        elif action == 1:
-            desired_speed -= 1
-            self.planner.local_planner.set_speed(-1)
-            control = self.planner.run_step()
-            control.brake = 0.0
-            control.throttle = round(control.throttle, 2)
-            self.ego_vehicle.apply_control(control)
+        # elif action == 2:
+        #     desired_speed -= 1
+        #     self.planner.local_planner.set_speed(-1)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
 
-        elif action == 2:
-            self.planner.local_planner.set_speed(0)
-            control = self.planner.run_step()
-            control.brake = 1.0
-            control.throttle = round(control.throttle, 2)
-            self.ego_vehicle.apply_control(control)
+        # elif action == 3:
+        #     self.planner.local_planner.set_speed(0)
+        #     control = self.planner.run_step()
+        #     control.brake = 1.0
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
 
-        elif action == 3:
-            control = self.planner.run_step()
-            control.brake = 0.0
-            if self.get_ego_speed() < 1.0:
-                control.brake = 1
-            control.throttle = round(control.throttle, 2)
-            self.ego_vehicle.apply_control(control)
+        # elif action == 0:
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     if self.get_ego_speed() < 1.0:
+        #         control.brake = 1
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
         # control = self.planner.run_step()
         # self.ego_vehicle.apply_control(control)
 
@@ -291,42 +291,41 @@ class UrbanEnv(CarlaGym):
 
         # target_speed = 0.0
 
-        # # accelerate
-        # if action == 1:
-        #     current_speed  = get_speed(self.ego_vehicle)
-        #     desired_speed = current_speed + 1
-        #     #desired_speed *= 3.6
-        #     self.current_speed = desired_speed
-        #     print('current speed desired speed: ', current_speed, desired_speed)
-        #     self.planner.local_planner.set_speed(desired_speed)
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     self.ego_vehicle.apply_control(control)
+        # accelerate
+        if action == 1:
+            current_speed  = self.get_ego_speed()
+            desired_speed = current_speed + 1
 
-        # # decelerate
-        # elif action == 2:
-        #     current_speed = get_speed(self.ego_vehicle)
-        #     desired_speed = current_speed - 1
-        #     #desired_speed *= 3.6
-        #     self.current_speed = desired_speed
-        #     print('current speed desired speed: ', current_speed, desired_speed)
-        #     self.planner.local_planner.set_speed(desired_speed)
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     self.ego_vehicle.apply_control(control)
+            #desired_speed *= 3.6
+            self.current_speed = desired_speed
+            self.planner.local_planner.set_speed(round(desired_speed, 2))
+            control = self.planner.run_step()
+            control.brake = 0.0
+            self.ego_vehicle.apply_control(control)
+
+        # decelerate
+        elif action == 2:
+            current_speed = self.get_ego_speed()
+            desired_speed = current_speed - 1.0
+            #desired_speed *= 3.6
+            self.current_speed = desired_speed
+            self.planner.local_planner.set_speed(round(desired_speed, 2))
+            control = self.planner.run_step()
+            control.brake = 0.0
+            self.ego_vehicle.apply_control(control)
 
 
-        # elif action == 3: # emergency stop
-        #     self.current_speed = 0
-        #     self.emergency_stop()
+        elif action == 3: # emergency stop
+            self.current_speed = 0
+            self.emergency_stop()
 
         
-        # # speed tracking
-        # elif action == 0:
-        #     #self.planner.local_planner.set_speed(self.current_speed)
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     self.ego_vehicle.apply_control(control)
+        # speed tracking
+        elif action == 0:
+            #self.planner.local_planner.set_speed(self.current_speed)
+            control = self.planner.run_step()
+            control.brake = 0.0
+            self.ego_vehicle.apply_control(control)
 
 
     def emergency_stop(self):
@@ -354,10 +353,10 @@ class UrbanEnv(CarlaGym):
         # Run some initial steps
         # for i in range(10):
         #     self.step(2)
-        for i in range(20):
-            self.step(3)       
+        # for i in range(10):
+        #     self.step(2)       
         for i in range(10):
-            self.step(2)
+            self.step(3)
 
         state = self._get_observation()
 
