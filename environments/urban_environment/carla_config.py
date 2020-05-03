@@ -14,7 +14,7 @@ ev_goal_z = 0.2
 ev_goal_yaw = 180.0
 
 # Sensors
-rgb_sensor = True
+rgb_sensor = False
 rgb_size_x = '1920'
 rgb_size_y = '1080'
 rgb_fov = '110'
@@ -64,11 +64,11 @@ y_size = 30
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
 
 # Spawner related
-num_of_ped = 8
+num_of_ped = 10
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.8
+percentage_pedestrians_crossing = 0.5
 percentage_pedestrians_crossing_illegal = 0.2
 ped_spawn_min_dist = 10.0
 ped_spawn_max_dist = 30.0
-ped_max_dist = 35.0
+ped_max_dist = 31.0
 ped_min_dist = 0.0

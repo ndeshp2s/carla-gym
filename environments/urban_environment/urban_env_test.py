@@ -25,13 +25,16 @@ env.reset()
 
 
 try:
-    for i in range(25):
-        env.step('2')
-
+    # for i in range(25):
+    #     env.step(2)
+    action = 1
+    step = 0
     while True:
-        action = '0'
+        
         #action = random.randint(0, 3)
-        #action = input('Enter action: ')
+        if step%1 == 0:
+            action = input('Enter action: ')
+            action = int(action)
 
 #         if rand == 0:
 #             action = '0'
@@ -40,13 +43,18 @@ try:
 #         elif rand == 2:
 #             action = '2'
 
-
+    
         env.step(action)
+        # for i in range(3):
+        #     env.step(0)
         # env.render()
         # env.tick()
+        step = step + 1
 
         if PLOT:
             speed = env.get_ego_speed()
+            print('speed:', speed)
+            print('target speed:', env.planner.local_planner.get_target_speed())
             y_vec[-1] = speed
             line1 = live_plotter(x_vec, y_vec, line1)
             y_vec = np.append(y_vec[1:], 0.0)

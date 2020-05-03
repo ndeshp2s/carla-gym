@@ -16,6 +16,7 @@ import carla
 
 from environments.urban_environment import carla_config
 from environments.urban_environment.walker_spawn_points import *
+from utils.miscellaneous import pedestrian_relative_position
 
 
 class Spawner(object):
@@ -31,13 +32,15 @@ class Spawner(object):
 
         self.pedestrian_list = []
 
-        self.pedestrian_ids = [0 for i in range(carla_config.num_of_ped)]
+        self.pedestrian_ids = [0 for i in range(carla_config.num_of_ped + 1)]
+        self.pedestrian_ids[0] = 1
 
 
     def reset(self):
         self.connect_to_server()
         self.pedestrian_list = []
-        self.pedestrian_ids = [0 for i in range(carla_config.num_of_ped)]
+        self.pedestrian_ids = [0 for i in range(carla_config.num_of_ped + 1)]
+        self.pedestrian_ids[0] = 1
 
 
     def connect_to_server(self):
@@ -62,14 +65,13 @@ class Spawner(object):
         ev_trans = self.get_ev_trans()
 
         spawn_points = self.get_spawn_points(ev_trans)
-
         
         self.controller_turnon(spawn_points)
 
+        self.spawn_pedestrian(spawn_points, ev_trans)
+
         self.check_pedestrian_distance(ev_trans)
 
-
-        self.spawn_pedestrian(spawn_points, ev_trans)
 
             
         
@@ -85,7 +87,7 @@ class Spawner(object):
             return
 
 
-
+        #print('spawner')
         counter = 0
         while len(self.pedestrian_list) <  self.num_of_ped:
             if len(spawn_points) == 0 or counter >= self.num_of_ped:
@@ -95,14 +97,17 @@ class Spawner(object):
             ped_bp = random.choice(self.world.get_blueprint_library().filter("walker.pedestrian.*"))
             ped_id = next((index for index, value in enumerate(self.pedestrian_ids) if value == 0), None)
 
-            ped_bp.set_attribute('role_name', str(ped_id + 1))
+            if ped_id is None:
+                ped_id = 0
+
+            ped_bp.set_attribute('role_name', str(ped_id))
 
             ped = None
             sp = carla.Transform()
 
             sp = random.choice(spawn_points)
-            sp.location.x += random.uniform(-0.5, 0.5)
-            sp.location.y += random.uniform(-0.5, 0.5)
+            # sp.location.x += random.uniform(-0.5, 0.5)
+            # sp.location.y += random.uniform(-0.5, 0.5)
 
             ped = self.world.try_spawn_actor(ped_bp, sp)
 
@@ -115,6 +120,7 @@ class Spawner(object):
 
 
     def controller_turnon(self, goal_points):
+        #print('controller_turnon')
         controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
 
         for p in self.pedestrian_list:
@@ -123,9 +129,11 @@ class Spawner(object):
                 controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to = ped)
                 controller.start()
                 goal = self.get_goal(goal_points, p["start"])
+                goal.location.z = 0.2
                 controller.go_to_location(goal.location)
+                #controller.go_to_location(self.world.get_random_location_from_navigation())
 
-                controller.set_max_speed(round(random.uniform(0.2, 0.4), 2))
+                controller.set_max_speed(round(random.uniform(0.2, 0.4), 2)*10)
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
@@ -135,6 +143,7 @@ class Spawner(object):
         if ev_trans is None:
             return
 
+        #print('check_pedestrian_distance')
         for p in self.pedestrian_list:
 
             ped = self.world.get_actor(p["id"])
@@ -143,7 +152,11 @@ class Spawner(object):
 
             ped_trans = ped.get_transform()
 
-            if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist, spawn = False):    
+            ped_loc = pedestrian_relative_position(ped_trans = ped_trans, ev_trans = ev_trans)
+
+
+            #if not self.is_within_distance(ped_trans.location, ev_trans.location, ev_trans.rotation.yaw, carla_config.ped_max_dist, carla_config.ped_min_dist, spawn = False): 
+            if ped_loc[0] > carla_config.ped_max_dist or ped_loc[0] < carla_config.ped_min_dist or abs(ped_loc[1]) > 10:
                 if p["controller"] is not None:
                     controller = self.world.get_actor(p["controller"])
                     if controller is not None:
@@ -151,7 +164,7 @@ class Spawner(object):
                         controller.destroy()
 
                 ped_id = int(ped.attributes['role_name'])
-                self.pedestrian_ids[ped_id - 1] = 0
+                self.pedestrian_ids[ped_id] = 0
 
                 ped.destroy()
 
@@ -159,6 +172,7 @@ class Spawner(object):
                 
                 
     def get_ev_trans(self):
+        #print('get_ev_trans')
         ev = self.get_ev()
 
         if ev is not None:
@@ -168,6 +182,7 @@ class Spawner(object):
 
 
     def get_ev(self):
+        #print('get_ev')
         actors = self.world.get_actors().filter(carla_config.ev_bp)
 
         if actors is not None:
@@ -179,6 +194,7 @@ class Spawner(object):
 
 
     def destroy_all(self):
+        #print('destroy_all')
 
         world = self.client.get_world()
         if world is not None:
@@ -189,6 +205,7 @@ class Spawner(object):
 
 
     def is_within_distance(self, tar_loc, cur_loc, rot, max_dist, min_dist, spawn = True):
+        #print('is_within_distance')
 
         if not spawn:
             if abs(tar_loc.x - cur_loc.x) > carla_config.ped_max_dist or abs(tar_loc.y - cur_loc.y) > carla_config.ped_max_dist:
@@ -210,6 +227,7 @@ class Spawner(object):
 
 
     def get_spawn_points(self, ev_trans = None):
+        #print('get_spawn_points')
         if ev_trans is None:
             return
         spawn_points = []
@@ -222,18 +240,24 @@ class Spawner(object):
 
 
     def get_goal(self, goal_points, start):
+        #print('get_goal')
         for goal in goal_points:
             goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
             start_wp = self.world.get_map().get_waypoint(start.location, project_to_road = True, lane_type = carla.LaneType.Any)
              
 
-            if (goal_wp.lane_id ^ start_wp.lane_id) < 0 and goal_wp.road_id == start_wp.road_id and self.distance(goal, start) < 15.0:
-                return goal
+            if goal_wp is not None and start_wp is not None:
+                if (goal_wp.lane_id ^ start_wp.lane_id) < 0 and goal_wp.road_id == start_wp.road_id and self.distance(goal, start) < 15.0:
+                    return goal_wp.transform
             
-        return random.choice(walker_goal_points)
+        goal = random.choice(walker_goal_points)
+        goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
+
+        return goal_wp.transform
 
 
     def distance(self, source_transform, destination_transform):
+        #print('distance')
         dx = source_transform.location.x - destination_transform.location.x
         dy = source_transform.location.y - destination_transform.location.y
 
@@ -278,7 +302,7 @@ def main():
     world.set_pedestrians_cross_illegal_factor(0.0)
 
     # Spawn ego vehicle
-    sp = carla.Transform(carla.Location(x = 40.0, y = -1.8, z = 0.1), carla.Rotation(yaw = 180))
+    sp = carla.Transform(carla.Location(x = 28.4, y = -0.40, z = 0.1), carla.Rotation(yaw = 180))
     bp = random.choice(world.get_blueprint_library().filter('vehicle.audi.etron'))
     bp.set_attribute('role_name', 'hero')
 
@@ -292,6 +316,21 @@ def main():
         while True:
 
             spawner.run_step(ev_trans = veh.get_transform())
+
+            for p in spawner.pedestrian_list:
+
+                ped = world.get_actor(p["id"])
+                if ped is None:
+                    continue
+
+                ped_trans = ped.get_transform()
+
+                ped_loc = pedestrian_relative_position(ped_trans = ped_trans, ev_trans = veh.get_transform())
+                print(ped_loc)
+
+                if abs(ped_loc[0]) < 3.5 and abs(ped_loc[1]) < 1.4:
+                    print('collision')
+
 
     except KeyboardInterrupt:
         spawner.destroy_all()

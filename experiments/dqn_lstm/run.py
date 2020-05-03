@@ -25,10 +25,9 @@ from experiments.trainer import Trainer
 from experiments.tester import Tester
 
 def main(args):
-    None
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/speed6'
+    experiment_dir = 'experiments/dqn_lstm/speed7'
 
     # Load configuration
     config = Config()
@@ -38,7 +37,7 @@ def main(args):
     config.hyperparameters = {
         "learning_rate": 0.0025,
         "batch_size": 32,
-        "sequence_length": 1,
+        "sequence_length": 8,
         "buffer_size": 10000,
         "update_every_n_steps": 1000,
         "min_steps_before_learning": 1,
@@ -66,7 +65,7 @@ def main(args):
     config.log_dir = experiment_dir + '/logs'
 
     config.model_dir = experiment_dir + '/model'
-    config.spawner = False
+    config.spawner = True
 
 
     # Initialize the environment
@@ -121,6 +120,7 @@ def main(args):
 
         try:
             tester.test()
+            
 
         except KeyboardInterrupt:
             try:
