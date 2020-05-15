@@ -19,15 +19,20 @@ import gym
 
 from experiments.config import Config
 from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv
-from rl_agents.DQN.ddqncnnlstm import DDQNCNNLSTMAgent 
+from rl_agents.DQN.ddqn import DDQNAgent 
 from environments.urban_environment.spawner import Spawner
 from experiments.trainer import Trainer
 from experiments.tester import Tester
+from collections import namedtuple
+
+
+Experience = namedtuple("Experience", field_names = ["state", "action", "reward", "next_state", "done"])   
+Site_Product=namedtuple("Site_Product", ["state", "action", "reward", "next_state", "done"])
 
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/speed7'
+    experiment_dir = 'experiments/dqn_lstm/test11'
 
     # Load configuration
     config = Config()
@@ -35,12 +40,12 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.0025,
-        "batch_size": 32,
-        "sequence_length": 8,
-        "buffer_size": 10000,
-        "update_every_n_steps": 1000,
-        "min_steps_before_learning": 1,
+        "learning_rate": 0.001,
+        "batch_size": 128,
+        "sequence_length": 10,
+        "buffer_size": 2000,
+        "update_every_n_steps": 100,
+        "min_steps_before_learning": 1000,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
         "epsilon_before_learning": 1.0,
@@ -75,7 +80,7 @@ def main(args):
 
 
     # Initialize the agent
-    agent = DDQNCNNLSTMAgent(config)
+    agent = DDQNAgent(config)
 
     # Initialize spawner
     spawner = Spawner()
@@ -86,6 +91,52 @@ def main(args):
 
         try:
             trainer.train()
+
+        except KeyboardInterrupt:
+            try:
+                trainer.close()
+                sys.exit(0)
+            except SystemExit:
+                trainer.close()
+                os._exit(0)
+
+    elif args.train_on_experiences:
+        trainer = Trainer(env = None, agent = agent, spawner = None, config = config)
+
+        # Get saved episodes
+        import pandas as pd 
+        PIK = "data.dat"
+        data = pd.read_pickle(r"data.dat")
+
+        try:
+            trainer.train_on_experiences(data)
+
+        except KeyboardInterrupt:
+            try:
+                trainer.close()
+                sys.exit(0)
+            except SystemExit:
+                trainer.close()
+                os._exit(0)
+
+
+    elif args.experiences:
+        trainer = Trainer(env, agent, spawner, config)
+
+        try:
+            experiences = trainer.add_experience()
+
+            # store episodes
+            data = []
+            for e in experiences:
+                e = Experience(state = e.state, action = e.action, reward = e.reward, next_state = e.next_state, done = e.done)
+                data.append(e)
+
+            import pickle
+            PIK = "data.dat"
+            with open(PIK, "wb") as f:
+                pickle.dump(data, f)
+
 
         except KeyboardInterrupt:
             try:
@@ -134,6 +185,8 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--train', dest='train', action='store_true', help='train model')
+    parser.add_argument('--train_on_experiences', dest='train_on_experiences', action='store_true', help='train model on experiences')
+    parser.add_argument('--experiences', dest='experiences', action='store_true', help='experience model')
     parser.add_argument('--config_path', type=str, help='file with training parameters')
     parser.add_argument('--env', default='Urban-v0', type=str, help='gym environment')
     parser.add_argument('--test', dest='test', action='store_true', help='test model')

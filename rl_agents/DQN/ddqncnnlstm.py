@@ -17,11 +17,11 @@ class DDQNCNNLSTMAgent:
 
         self.hyperparameters = config.hyperparameters
 
-        if config.use_cuda:
-            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # if config.use_cuda:
+        #     self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        else:
-            self.device = "cpu"
+        # else:
+        self.device = "cpu"
 
         # Initialise Q-Network
         self.local_network = NeuralNetwork(self.state_size, self.action_size, self.device).to(self.device)
@@ -35,58 +35,46 @@ class DDQNCNNLSTMAgent:
 
 
     def add(self, episode):
-        self.memory.add_episode(episode)
+        self.memory.add_episode(episode) 
 
 
     def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = False):
 
-
-        hidden_batch1, cell_batch1 = self.local_network.init_hidden_states(batch_size = batch_size)
-        hidden_batch2, cell_batch2 = self.local_network.init_hidden_states(batch_size = batch_size)
-
         batch  = self.memory.get_batch(batch_size = batch_size, time_step = time_step)
 
-        states1 = []
-        states2 = []
+        states = []
         actions = []
         rewards = []
-        next_states1 = []
-        next_states2 = []
+        next_states = []
 
         for b in batch:
-            s1, s2, a, r, ns1, ns2 = [], [], [], [], [], []
+            s, a, r, ns = [], [], [], []
             for e in b:
-                s1.append(e[0][0])
-                s2.append(e[0][1])
+                s.append(e[0])
                 a.append(e[1])
                 r.append(e[2])
-                ns1.append(e[3][0])
-                ns2.append(e[3][1])
+                ns.append(e[3])
                 
-            states1.append(s1)
-            states2.append(s2)
+            states.append(s)
             actions.append(a)
             rewards.append(r)
-            next_states1.append(ns1)
-            next_states2.append(ns2)
+            next_states.append(ns)
 
 
-        states1 = torch.from_numpy(np.array(states1)).float().to(self.device)
-        states2 = torch.from_numpy(np.array(states2)).float().to(self.device)
+        states = torch.from_numpy(np.array(states)).float().to(self.device)
         actions = torch.from_numpy(np.array(actions)).long().to(self.device)
         rewards = torch.from_numpy(np.array(rewards)).float().to(self.device)
-        next_states1 = torch.from_numpy(np.array(next_states1)).float().to(self.device)
-        next_states2 = torch.from_numpy(np.array(next_states2)).float().to(self.device)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(self.device)
 
         # Get the q values for all actions from local network
-        q_predicted_all, _, _ = self.local_network.forward(states1, states2, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
+        q_predicted_all, _, _ = self.local_network.forward(states, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
         #Get the q value corresponding to the action executed
         q_predicted = q_predicted_all.gather(dim = 1, index = actions[:, time_step - 1].unsqueeze(dim = 1)).squeeze(dim = 1)
         # Get q values for all the actions of next state
-        q_next_predicted_all, _, _ = self.local_network.forward(next_states1, next_states2, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
+        q_next_predicted_all, _, _ = self.local_network.forward(next_states, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
         
         # get q values for the actions of next state from target netwrok
-        q_next_target_all, _, _ = self.target_network.forward(next_states1, next_states2, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
+        q_next_target_all, _, _ = self.target_network.forward(next_states, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation

@@ -124,11 +124,26 @@ class UrbanEnv(CarlaGym):
                 x_discrete = np.argmax(x_discrete)
                 y_discrete = np.argmax(y_discrete)
 
+
+
                 # Get pdestrian id
                 p_id = int(p.attributes['role_name'])
 
                 # Get pedestrian relative orientation
-                p_heading = p_trans.rotation.yaw - ev_trans.rotation.yaw
+                ## COnvert to 0 to 360
+                p_heading = (p_trans.rotation.yaw + 360) % 360
+                p_heading = round(p_heading, 2)
+                ev_heading = (ev_trans.rotation.yaw + 360) % 360
+                ev_heading = round(ev_heading, 2)
+
+                p_relative_heading = p_heading - ev_heading
+                p_relative_heading = (p_relative_heading + 360) % 360
+                p_relative_heading = round(p_relative_heading, 2)
+
+                # Get pedestrian speed
+                p_speed = get_speed(p)
+                p_speed = round(p_speed, 2)
+
 
                 # Get pedestrian lane type
                 ped_lane = None
@@ -142,24 +157,36 @@ class UrbanEnv(CarlaGym):
                     ped_lane = 3
 
 
-                tensor1[x_discrete, y_discrete,:] = [self.normalize_data(p_id, 0.0, carla_config.num_of_ped), 
-                                                    self.normalize_data(p_heading, 0.0, 360.0),       
-                                                    self.normalize_data(ped_lane, 0.0, 3)]
+                # tensor1[x_discrete, y_discrete,:] = [self.normalize_data(p_id, 0.0, carla_config.num_of_ped), 
+                #                                     self.normalize_data(p_heading, 0.0, 360.0),       
+                #                                     self.normalize_data(ped_lane, 0.0, 3)]
                                                     # ped id, ped relative orientation and region occupied.
 
                 #print(tensor[x_discrete, y_discrete, :])
 
-        tensor = []
-        tensor.append(tensor1)
-        tensor.append(tensor2)
+                # Normalize all values
+                p_relative_heading_norm = self.normalize_data(p_relative_heading, 0.0, 360.0)
+                p_relative_heading_norm = round(p_relative_heading_norm, 2)
+
+                p_speed_norm = self.normalize_data(p_speed, 0.0, carla_config.ped_max_speed)
+                p_speed_norm = round(p_speed_norm, 2)
+
+                tensor1[x_discrete, y_discrete, :] = [1.0, p_relative_heading_norm, p_speed_norm]
+
+                #print('Heading: ', p_heading, ev_heading, p_relative_heading, p_relative_heading_norm)
+                #print('Speed: ', p_speed)
+
+        # tensor = []
+        # tensor.append(tensor1)
+        # tensor.append(tensor2)
         
-        return tensor
+        return tensor1
 
 
     def _get_reward(self):
 
         done = False
-        info = 'Done'
+        info = 'None'
 
         total_reward = d_reward = nc_reward = c_reward = 0.0
 
@@ -172,18 +199,18 @@ class UrbanEnv(CarlaGym):
         if ev_speed > 0.0 and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
-        # elif ev_speed > self.max_allowed_speed:
-        #     d_reward = -1.0
+        # # elif ev_speed > self.max_allowed_speed:
+        # #     d_reward = -1.0
 
-        elif ev_speed <= 0.0:
-            d_reward = -1.0
+        # elif ev_speed <= 0.0:
+        #     d_reward = -1.0
         
         ## Reward(penalty) for collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
         collision, near_collision, pedestrian = self.is_collision(pedestrian_list)
 
         if collision is True and ev_speed > 0.0:
-            #print('collision')
+            print('collision')
             c_reward = -10
             done = True
             info = 'Collision'
@@ -192,9 +219,9 @@ class UrbanEnv(CarlaGym):
             done = True
             info = 'Ped-Collision'
 
-        # elif near_collision is True:
-        #     #print('near collision')
-        #     nc_reward = -5
+        elif near_collision is True and ev_speed > 0.0:
+        #     print('near collision')
+            nc_reward = -2
 
         # Check if goal reached
         if self.planner.done():
@@ -253,37 +280,70 @@ class UrbanEnv(CarlaGym):
 
 
 
-        desired_speed = self.planner.local_planner.get_target_speed()
-        if action == 1:
-            desired_speed += 1
-            self.planner.local_planner.set_speed(1)
+        # desired_speed = self.planner.local_planner.get_target_speed()
+        # if action == 1:
+        #     desired_speed += 1
+        #     self.planner.local_planner.set_speed(1)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
+
+        # elif action == 2:
+        #     desired_speed -= 1
+        #     self.planner.local_planner.set_speed(-1)
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
+
+        # elif action == 3:
+        #     self.planner.local_planner.set_speed(0)
+        #     control = self.planner.run_step()
+        #     control.brake = 1.0
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
+
+        # elif action == 0:
+        #     control = self.planner.run_step()
+        #     control.brake = 0.0
+        #     if self.get_ego_speed() < 1.0:
+        #         control.brake = 1
+        #     control.throttle = round(control.throttle, 2)
+        #     self.ego_vehicle.apply_control(control)
+
+        if action == 0:
+            self.planner.local_planner.set_speed(20)
             control = self.planner.run_step()
             control.brake = 0.0
             control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 2:
-            desired_speed -= 1
+        elif action == 1:
             self.planner.local_planner.set_speed(-1)
             control = self.planner.run_step()
             control.brake = 0.0
             control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 3:
+
+        elif action == 2:
             self.planner.local_planner.set_speed(0)
             control = self.planner.run_step()
             control.brake = 1.0
-            control.throttle = round(control.throttle, 2)
+            # control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 0:
-            control = self.planner.run_step()
-            control.brake = 0.0
-            if self.get_ego_speed() < 1.0:
-                control.brake = 1
-            control.throttle = round(control.throttle, 2)
-            self.ego_vehicle.apply_control(control)
+
+
+
+
+
+
+
+
+
+
         # control = self.planner.run_step()
         # self.ego_vehicle.apply_control(control)
 
@@ -351,12 +411,12 @@ class UrbanEnv(CarlaGym):
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(10):
-            self.step(0)
-        for i in range(10):
-            self.step(3)       
         # for i in range(10):
-        #     self.step(3)
+        #     self.step(0)
+        for i in range(10):
+            self.step(0)       
+        for i in range(10):
+            self.step(1)
 
         state = self._get_observation()
 
@@ -514,7 +574,7 @@ class UrbanEnv(CarlaGym):
             # if target_waypoint.road_id == ego_vehicle_waypoint.road_id and \
             #         target_waypoint.lane_type == ego_vehicle_waypoint.lane_type:
                 
-                elif is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 8.0):
+                elif abs(ped_loc[0]) < 10.0 and abs(ped_loc[1]) < 2.4: #is_within_distance_ahead(target.get_transform(), self.ego_vehicle.get_transform(), 8.0):
                     return (False, True, target)
 
         return (False, False, None)

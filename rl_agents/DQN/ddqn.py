@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from experiments.config import Config
 from rl_agents.DQN.replay_buffer import ReplayBuffer
-from neural_networks.fc64_fc64 import NeuralNetwork
+from neural_networks.cnn_fc import NeuralNetwork
 
 class DDQNAgent:
     def __init__(self, config: Config):
@@ -34,39 +34,73 @@ class DDQNAgent:
         self.memory = ReplayBuffer(self.hyperparameters["buffer_size"])
 
     def add(self, state, reward, action, next_state, done):
-        self.memory.add_experience(state, reward, action, next_state, done)
+        self.memory.add_experience(state = state, reward = reward, action = action, next_state = next_state, done = done)
 
     def learn(self, batch_size = 32, experiences = None, step = 0):
 
-        if experiences is None:
-            #states, actions, rewards, next_states, dones  = self.memory.sample(batch_size)
-            experiences  = self.memory.sample(batch_size)
+        batch  = self.memory.sample(batch_size = batch_size)
 
-        # else:
-        #     states, actions, rewards, next_states, dones = experiences
+        states = []
+        actions = []
+        rewards = []
+        next_states = []
 
-        states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
-        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
-        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
-        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(self.device)
-        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
+        for e in batch:                
+            states.append(e.state)
+            actions.append(e.action)
+            rewards.append(e.reward)
+            next_states.append(e.next_state)
 
+
+        states = torch.from_numpy(np.array(states)).float().to(self.device)
+        actions = torch.from_numpy(np.array(actions)).long().to(self.device)
+        rewards = torch.from_numpy(np.array(rewards)).float().to(self.device)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(self.device)
 
         # Get the q values for all actions from local network
-        q_predicted_all = self.local_network(states)
-        # Get teh q value corresponding to the action executed
-        q_predicted = q_predicted_all.gather(1, actions.long())
+        q_predicted_all = self.local_network.forward(states, batch_size = batch_size)
+        #Get the q value corresponding to the action executed
+        q_predicted = q_predicted_all.gather(dim = 1, index = actions.unsqueeze(dim = 1)).squeeze(dim = 1)
         # Get q values for all the actions of next state
-        q_next_predicted_all = self.local_network(next_states)
-        # Find the index of action with maximum q values (from next state)
-        max_action_index = q_next_predicted_all.detach().argmax(1)
-
+        q_next_predicted_all = self.local_network.forward(next_states, batch_size = batch_size)
+        
         # get q values for the actions of next state from target netwrok
-        q_next_target = self.target_network(next_states)
+        q_next_target_all = self.target_network.forward(next_states, batch_size = batch_size)
         # get q value of action with same index as that of the action with maximum q values (from local network)
-        q_max_next = q_next_target.gather(1, max_action_index.unsqueeze(1))
+        q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation
-        q_target = rewards + (self.hyperparameters["discount_rate"] * q_max_next * (1 - dones))
+        q_target = rewards + (self.hyperparameters["discount_rate"] * q_next_target)
+
+
+        # if experiences is None:
+        #     #states, actions, rewards, next_states, dones  = self.memory.sample(batch_size)
+        #     experiences  = self.memory.sample(batch_size)
+
+        # # else:
+        # #     states, actions, rewards, next_states, dones = experiences
+
+        # states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
+        # actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
+        # rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
+        # next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(self.device)
+        # dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
+
+
+        # # Get the q values for all actions from local network
+        # q_predicted_all = self.local_network(states)
+        # # Get teh q value corresponding to the action executed
+        # q_predicted = q_predicted_all.gather(1, actions.long())
+        # # Get q values for all the actions of next state
+        # q_next_predicted_all = self.local_network(next_states)
+        # # Find the index of action with maximum q values (from next state)
+        # max_action_index = q_next_predicted_all.detach().argmax(1)
+
+        # # get q values for the actions of next state from target netwrok
+        # q_next_target = self.target_network(next_states)
+        # # get q value of action with same index as that of the action with maximum q values (from local network)
+        # q_max_next = q_next_target.gather(1, max_action_index.unsqueeze(1))
+        # # Find target q value using Bellmann's equation
+        # q_target = rewards + (self.hyperparameters["discount_rate"] * q_max_next * (1 - dones))
 
 
         loss = self.criterion(q_predicted, q_target)
@@ -86,10 +120,15 @@ class DDQNAgent:
 
         if step % self.hyperparameters["update_every_n_steps"] == 0:
             self.target_network.load_state_dict(self.local_network.state_dict())
+        #self.soft_update(self.local_network, self.target_network, self.hyperparameters["tau"])
 
         return loss.item()
 
 
+    def soft_update(self, local_network, target_network, tau):
+
+        for target_param, local_param in zip(target_network.parameters(), local_network.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1 - tau)*target_param.data)
 
     def save_model(self, directory = None, tag = ''):
         if directory is None:
@@ -100,7 +139,7 @@ class DDQNAgent:
 
         torch.save(self.local_network.state_dict(), '%s/model%s.pkl' % (directory, ('-' + tag)))
 
-    def pick_action(self, state, epsilon):
+    def pick_action(self, state, epsilon, steps = 0):
         state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
 
         # Query the network
@@ -110,7 +149,10 @@ class DDQNAgent:
             action = action_values.max(1)[1].item()
 
         else:
-            action = np.random.randint(0, action_values.shape[1])
+            if steps < 10000:
+                action = np.random.choice(np.arange(0, 3), p = [0.5, 0.25, 0.25])
+            else:
+                action = np.random.randint(0, 3)
 
         return action
 

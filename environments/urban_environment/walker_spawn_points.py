@@ -17,7 +17,7 @@ import random
 
 DEBUG = 0
 
-point_spacing = 5
+point_spacing = 8
 
 if DEBUG:
     # Connect to client

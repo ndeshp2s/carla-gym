@@ -40,5 +40,10 @@ class ReplayBuffer():
             batch.append(e[point:point + time_step])
         return batch
 
+    def sample(self, batch_size = 32):
+        experiences = random.sample(self.memory, k = batch_size)
+
+        return experiences
+
     def __len__(self):
         return len(self.memory)

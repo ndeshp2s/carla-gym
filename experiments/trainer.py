@@ -1,12 +1,16 @@
 import os
 import math
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
-
+import pickle
+from collections import namedtuple
 from experiments.config import Config
 #from experiments.util import EpsilonTracker, DataVisualization
+from utils.miscellaneous import plot_grid
 
 DEBUG = 0
+
 class Trainer:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env
@@ -29,6 +33,37 @@ class Trainer:
         self.spawner = spawner
 
 
+    def add_experience(self):
+        data = {}
+        data["experiences"] = []
+        experience = namedtuple("Experience", field_names = ["state", "action", "reward", "next_state", "done"])
+        
+        experiences = []
+
+        for i in range(4):
+            
+
+            state = self.env.reset()
+            self.spawner.reset()
+
+            for step_num in range(200):
+                action = input('Enter to continue: ')
+                action = int(action)
+
+                self.spawner.run_step()
+                next_state, reward, done, info = self.env.step(action)
+
+                e = experience(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                experiences.append(e)
+
+                state = next_state
+
+        self.close()
+
+        return experiences
+
+
+
     def train(self, previous_episode = -1, total_steps = 0):
         losses = []
         rewards = []
@@ -36,6 +71,7 @@ class Trainer:
         episode_number = previous_episode + 1
         total_steps = total_steps
         learning = False
+        episode_steps = 0
 
     #     #data_vis = DataVisualization(x_min = 0, x_max = 60, y_min = -5, y_max = 25)
         
@@ -47,12 +83,8 @@ class Trainer:
 
             # Reset the environment and variables for new episode
             episode_reward = 0
+            episode_steps = 0
             state = self.env.reset()
-
-            if episode_number%2 == 0:
-                self.config.spawner = True
-            else:
-                self.config.spawner = False
 
 
             if self.config.spawner:
@@ -60,57 +92,48 @@ class Trainer:
 
             local_memory = []
 
-            hidden_state1, cell_state1 = self.agent.local_network.init_hidden_states(batch_size = 1)
-            hidden_state2, cell_state2 = self.agent.local_network.init_hidden_states(batch_size = 1)
-
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
-                if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"] and self.start_learning == False:
+                if self.agent.memory.__len__() >= self.config.hyperparameters["min_steps_before_learning"] and self.start_learning == False:
                     self.start_learning = True
                     episode_number = previous_episode + 1
+                    total_steps = 0
 
-                    # if self.reset_epsilon:
-                    #     epsilon = self.config.hyperparameters["epsilon_start"]
-                    #     self.reset_epsilon = False
+                    epsilon = self.config.hyperparameters["epsilon_start"]
 
                 
                 # Select action
-                action, hidden_state1, cell_state1, hidden_state2, cell_state2 = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, \
-                                                                                                        hidden_state1 = hidden_state1, cell_state1 = cell_state1, \
-                                                                                                        hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon)
+                action = self.agent.pick_action(state, epsilon, steps = total_steps)
+
+                # Execute spwner step
+                if self.config.spawner:
+                    self.spawner.run_step(step_num = total_steps)
 
                 if DEBUG:
-                    #action = input('Enter to continue: ')
-                    #action = int(action)
-                    input('Enter to continue: ')
+                    action = input('Enter to continue: ')
+                    action = int(action)
+                    #input('Enter to continue: ')
 
                 
                 # Execute action for 4 times
-                #next_state, reward, done, info = self.env.step(action)
-                for i in range(4):
+                for i in range(1):
                     next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
-                local_memory.append((state, action, reward, next_state, done))
-            #     #self.agent.add(state, action, reward, next_state, done)
+                self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
 
                 # Update parameters
                 state = next_state
                 episode_reward += reward
-                if self.start_learning: 
-                    total_steps += 1
-
-                # Execute spwner step
-                if self.config.spawner:
-                    self.spawner.run_step()
-
+                episode_steps += 1
+                #if self.start_learning: 
+                total_steps += 1
 
                 # Performing learning if minumum required experiences gathered
                 loss = 0
 
-                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and total_steps % self.config.learing_frequency == 0 \
-                and self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
-                    loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], time_step = self.config.hyperparameters["sequence_length"], step = total_steps)
+                if self.start_learning:
+                    loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], step = total_steps)
 
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
@@ -129,17 +152,15 @@ class Trainer:
                     self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
 
 
-            # Save the episode
-            self.agent.add(local_memory)
-
             # Print details of the episode
             print("----------------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f, Total Step: %d, Info: %s, Epsilon: %4f" % (episode_number, episode_reward, loss, total_steps, info, epsilon))
+            print("Episode: %d, Reward: %5f, Steps: %d, Loss: %4f, Total Step: %d, Info: %s, Epsilon: %4f" % (episode_number, episode_reward, episode_steps, loss, total_steps, info, epsilon))
             print("----------------------------------------------------------")
 
             # Save episode reward
             if self.start_learning:
                 self.writer.add_scalar('Reward per episode', episode_reward, episode_number)
+                self.writer.add_scalar('Step per episode', episode_steps, episode_number)
 
             # # # Save weights
             # # self.agent.save_model(self.config.model_dir)
@@ -168,6 +189,27 @@ class Trainer:
         self.close()
 
 
+    def train_on_experiences(self, experiences):
+        for e in experiences:
+            state = e.state
+            action = e.action
+            reward = e.reward
+            done = e.done
+            next_state = e.next_state
+            if action == 22:
+                action = 2
+            self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
+
+
+        for i in range(10000):
+            loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], step = i)
+
+            self.writer.add_scalar('Loss per step', loss, i)
+
+            if i%100 == 0:
+                print("Loss: %4f, Total Step: %d," % (loss, i))
+
+
     def close(self):
         self.env.close()
 
@@ -180,10 +222,10 @@ class Trainer:
         self.agent.local_network.load_state_dict(checkpoint['state_dict'])
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.previous_episode = checkpoint['episode']
+        self.previous_episode = 0#checkpoint['episode']
         #self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-        self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
-        self.steps = checkpoint['total_steps']
+        #self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
+        self.steps = 0#checkpoint['total_steps']
 
         self.agent.local_network.train()
         self.agent.target_network.train()

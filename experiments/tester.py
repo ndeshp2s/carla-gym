@@ -26,31 +26,29 @@ class Tester:
             state = self.env.reset()
             self.spawner.reset()
 
-            hidden_state1, cell_state1 = self.agent.local_network.init_hidden_states(batch_size = 1)
-            hidden_state2, cell_state2 = self.agent.local_network.init_hidden_states(batch_size = 1)
 
             for step_num in range(self.config.steps_per_episode):
                 # Select action
-                action, hidden_state1, cell_state1, hidden_state2, cell_state2 = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, \
-                                                                                                        hidden_state1 = hidden_state1, cell_state1 = cell_state1, \
-                                                                                                        hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon)
+                action = self.agent.pick_action(state, epsilon, steps = step_num)
 
                 if DEBUG:
                     input('Enter to continue: ')
                 
-
+                                # Execute spwner step
+                if self.config.spawner:
+                    self.spawner.run_step(step_num = step_num)
+                    
                 # Execute action for 10 times
                 next_state, reward, done, info = self.env.step(action)
-                # for i in range(9):
-                #     next_state, reward, done, info = self.env.step(3)
+                # for i in range(4):
+                #     next_state, reward, done, info = self.env.step(action)
+                print(reward, done, info)
                 print(action, self.env.get_ego_speed(), reward, self.env.planner.local_planner.get_target_speed())
                 # Update parameters
                 state = next_state
                 episode_reward += reward
 
-                # Execute spwner step
-                if self.config.spawner:
-                    self.spawner.run_step()
+
 
 
                 if done:
@@ -69,7 +67,7 @@ class Tester:
 
 
     def load_checkpoint(self, file = None, checkpoint_dir = None):
-        checkpoint = torch.load(self.config.checkpoint_dir + '/' + file)
+        checkpoint = torch.load(self.config.checkpoint_dir + '/' + file, map_location='cpu')
 
         # Load network weights and biases
         self.agent.local_network.load_state_dict(checkpoint['state_dict'])

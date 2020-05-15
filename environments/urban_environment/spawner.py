@@ -64,13 +64,19 @@ class Spawner(object):
 
         ev_trans = self.get_ev_trans()
 
+        if step_num%5 == 0:
+            self.check_pedestrian_distance(ev_trans = ev_trans)
+
         spawn_points = self.get_spawn_points(ev_trans)
         
         self.controller_turnon(spawn_points)
 
-        self.spawn_pedestrian(spawn_points, ev_trans)
+        if step_num%5 == 0:
+            self.spawn_pedestrian(spawn_points, ev_trans)
 
-        self.check_pedestrian_distance(ev_trans)
+        #self.check_pedestrian_distance(ev_trans = ev_trans)
+
+        
 
 
             
@@ -87,7 +93,7 @@ class Spawner(object):
             return
 
 
-        #print('spawner')
+        
         counter = 0
         while len(self.pedestrian_list) <  self.num_of_ped:
             if len(spawn_points) == 0 or counter >= self.num_of_ped:
@@ -111,6 +117,7 @@ class Spawner(object):
 
             ped = self.world.try_spawn_actor(ped_bp, sp)
 
+
             if ped is not None:
                 self.pedestrian_ids[ped_id] = 1
                 self.pedestrian_list.append({"id": ped.id, "controller": None, "start": sp})
@@ -133,7 +140,7 @@ class Spawner(object):
                 controller.go_to_location(goal.location)
                 #controller.go_to_location(self.world.get_random_location_from_navigation())
 
-                controller.set_max_speed(round(random.uniform(0.2, 0.4), 2)*10)
+                controller.set_max_speed(round(random.uniform(2.0, carla_config.ped_max_speed), 2))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
@@ -143,7 +150,7 @@ class Spawner(object):
         if ev_trans is None:
             return
 
-        #print('check_pedestrian_distance')
+                
         for p in self.pedestrian_list:
 
             ped = self.world.get_actor(p["id"])
@@ -326,7 +333,6 @@ def main():
                 ped_trans = ped.get_transform()
 
                 ped_loc = pedestrian_relative_position(ped_trans = ped_trans, ev_trans = veh.get_transform())
-                print(ped_loc)
 
                 if abs(ped_loc[0]) < 3.5 and abs(ped_loc[1]) < 1.4:
                     print('collision')
