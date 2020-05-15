@@ -40,32 +40,38 @@ class DDQNAgent:
 
         batch  = self.memory.sample(batch_size = batch_size)
 
-        states = []
+        states1 = []
+        states2 = []
         actions = []
         rewards = []
-        next_states = []
+        next_states1 = []
+        next_states2 = []
 
         for e in batch:                
-            states.append(e.state)
+            states1.append(e.state[0])
+            states2.append(e.state[1])
             actions.append(e.action)
             rewards.append(e.reward)
-            next_states.append(e.next_state)
+            next_states1.append(e.next_state[0])
+            next_states2.append(e.next_state[1])
 
 
-        states = torch.from_numpy(np.array(states)).float().to(self.device)
+        states1 = torch.from_numpy(np.array(states1)).float().to(self.device)
+        states2 = torch.from_numpy(np.array(states2)).float().to(self.device)
         actions = torch.from_numpy(np.array(actions)).long().to(self.device)
         rewards = torch.from_numpy(np.array(rewards)).float().to(self.device)
-        next_states = torch.from_numpy(np.array(next_states)).float().to(self.device)
+        next_states1 = torch.from_numpy(np.array(next_states1)).float().to(self.device)
+        next_states2 = torch.from_numpy(np.array(next_states2)).float().to(self.device)
 
         # Get the q values for all actions from local network
-        q_predicted_all = self.local_network.forward(states, batch_size = batch_size)
+        q_predicted_all = self.local_network.forward(x1 = states1, x2 = states2, batch_size = batch_size)
         #Get the q value corresponding to the action executed
         q_predicted = q_predicted_all.gather(dim = 1, index = actions.unsqueeze(dim = 1)).squeeze(dim = 1)
         # Get q values for all the actions of next state
-        q_next_predicted_all = self.local_network.forward(next_states, batch_size = batch_size)
+        q_next_predicted_all = self.local_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size)
         
         # get q values for the actions of next state from target netwrok
-        q_next_target_all = self.target_network.forward(next_states, batch_size = batch_size)
+        q_next_target_all = self.target_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation
@@ -118,9 +124,9 @@ class DDQNAgent:
         # update params
         self.optimizer.step()
 
-        if step % self.hyperparameters["update_every_n_steps"] == 0:
-            self.target_network.load_state_dict(self.local_network.state_dict())
-        #self.soft_update(self.local_network, self.target_network, self.hyperparameters["tau"])
+        # if step % self.hyperparameters["update_every_n_steps"] == 0:
+        #     self.target_network.load_state_dict(self.local_network.state_dict())
+        self.soft_update(self.local_network, self.target_network, self.hyperparameters["tau"])
 
         return loss.item()
 
@@ -140,19 +146,20 @@ class DDQNAgent:
         torch.save(self.local_network.state_dict(), '%s/model%s.pkl' % (directory, ('-' + tag)))
 
     def pick_action(self, state, epsilon, steps = 0):
-        state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
+        state_tensor1 = torch.from_numpy(state[0]).float().unsqueeze(0).to(self.device)
+        state_tensor2 = torch.from_numpy(state[1]).float().unsqueeze(0).to(self.device)
 
         # Query the network
-        action_values = self.local_network.forward(state_tensor)
+        action_values = self.local_network.forward(state_tensor1, state_tensor2)
 
         if np.random.uniform() > epsilon:
             action = action_values.max(1)[1].item()
 
         else:
-            if steps < 10000:
-                action = np.random.choice(np.arange(0, 3), p = [0.5, 0.25, 0.25])
-            else:
-                action = np.random.randint(0, 3)
+            # if steps < 10000:
+            #     action = np.random.choice(np.arange(0, 3), p = [0.5, 0.25, 0.25])
+            # else:
+            action = np.random.randint(0, 3)
 
         return action
 

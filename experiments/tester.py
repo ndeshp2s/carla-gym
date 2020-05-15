@@ -5,7 +5,7 @@ import torch
 from experiments.config import Config
 from agents.tools.misc import get_speed
 
-DEBUG = 1
+DEBUG = 0
 class Tester:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env
@@ -30,6 +30,7 @@ class Tester:
             for step_num in range(self.config.steps_per_episode):
                 # Select action
                 action = self.agent.pick_action(state, epsilon, steps = step_num)
+                print(action, self.env.get_ego_speed())
 
                 if DEBUG:
                     input('Enter to continue: ')
@@ -37,7 +38,7 @@ class Tester:
                                 # Execute spwner step
                 if self.config.spawner:
                     self.spawner.run_step(step_num = step_num)
-                    
+
                 # Execute action for 10 times
                 next_state, reward, done, info = self.env.step(action)
                 # for i in range(4):

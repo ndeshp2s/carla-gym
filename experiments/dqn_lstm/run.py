@@ -32,7 +32,7 @@ Site_Product=namedtuple("Site_Product", ["state", "action", "reward", "next_stat
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test11'
+    experiment_dir = 'experiments/dqn_lstm/test7'
 
     # Load configuration
     config = Config()
@@ -41,10 +41,10 @@ def main(args):
 
     config.hyperparameters = {
         "learning_rate": 0.001,
-        "batch_size": 128,
+        "batch_size": 32,
         "sequence_length": 10,
-        "buffer_size": 2000,
-        "update_every_n_steps": 100,
+        "buffer_size": 5000,
+        "update_every_n_steps": 1000,
         "min_steps_before_learning": 1000,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
