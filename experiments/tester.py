@@ -5,7 +5,7 @@ import torch
 from experiments.config import Config
 from agents.tools.misc import get_speed
 
-DEBUG = 1
+DEBUG = 0
 class Tester:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env

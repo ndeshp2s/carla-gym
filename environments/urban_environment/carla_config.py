@@ -42,17 +42,17 @@ num_of_ped = 3
 HEIGHT = 1
 WIDTH = 4*num_of_ped
 N_CHANNELS = 0
-grid_height = 60
-grid_width = 30
-features = 3
+grid_height = 32
+grid_width = 32
+features = 4
 lane_types = 3# Driving(road)-1, sidewalk(shoulder)-2, crosswalk-3 
 
-x_min = -5
-x_max = 55
-x_size = 60
-y_min = -15
-y_max = 15
-y_size = 30
+x_min = 0
+x_max = 32
+x_size = 32
+y_min = -16
+y_max = 16
+y_size = 32
 
 # Pedestrian behavior probalities
 # Four types of behaviors:
@@ -62,13 +62,14 @@ y_size = 30
 ## standing on road (group of people standing on road side)
 ## pedestrian walking on road
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
+ped_max_speed = 5.0
 
 # Spawner related
-num_of_ped = 10
+num_of_ped = 8
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.5
+percentage_pedestrians_crossing = 0.6
 percentage_pedestrians_crossing_illegal = 0.2
-ped_spawn_min_dist = 10.0
+ped_spawn_min_dist = 5.0
 ped_spawn_max_dist = 30.0
 ped_max_dist = 31.0
 ped_min_dist = 0.0

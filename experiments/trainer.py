@@ -33,6 +33,7 @@ class Trainer:
         losses = []
         rewards = []
         episode_reward = 0
+        episode_steps = 0
         episode_number = previous_episode + 1
         total_steps = total_steps
         learning = False
@@ -49,10 +50,10 @@ class Trainer:
             episode_reward = 0
             state = self.env.reset()
 
-            if episode_number%2 == 0:
-                self.config.spawner = True
-            else:
-                self.config.spawner = False
+            # if episode_number%2 == 0:
+            #     self.config.spawner = True
+            # else:
+            #     self.config.spawner = False
 
 
             if self.config.spawner:
@@ -60,14 +61,16 @@ class Trainer:
 
             local_memory = []
 
-            hidden_state1, cell_state1 = self.agent.local_network.init_hidden_states(batch_size = 1)
-            hidden_state2, cell_state2 = self.agent.local_network.init_hidden_states(batch_size = 1)
+            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
 
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
                 if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"] and self.start_learning == False:
                     self.start_learning = True
                     episode_number = previous_episode + 1
+                    total_steps = 0
+
+                    epsilon = self.config.hyperparameters["epsilon_start"]
 
                     # if self.reset_epsilon:
                     #     epsilon = self.config.hyperparameters["epsilon_start"]
@@ -75,10 +78,7 @@ class Trainer:
 
                 
                 # Select action
-                action, hidden_state1, cell_state1, hidden_state2, cell_state2 = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, \
-                                                                                                        hidden_state1 = hidden_state1, cell_state1 = cell_state1, \
-                                                                                                        hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon)
-
+                action, hidden_state, cell_state = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
                 if DEBUG:
                     #action = input('Enter to continue: ')
                     #action = int(action)
@@ -87,7 +87,7 @@ class Trainer:
                 
                 # Execute action for 4 times
                 #next_state, reward, done, info = self.env.step(action)
-                for i in range(4):
+                for i in range(1):
                     next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
@@ -99,6 +99,7 @@ class Trainer:
                 episode_reward += reward
                 if self.start_learning: 
                     total_steps += 1
+                episode_steps += 1
 
                 # Execute spwner step
                 if self.config.spawner:
@@ -130,16 +131,18 @@ class Trainer:
 
 
             # Save the episode
-            self.agent.add(local_memory)
+            if len(local_memory) > self.config.hyperparameters["sequence_length"]:
+                self.agent.add(local_memory)
 
             # Print details of the episode
             print("----------------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f, Total Step: %d, Info: %s, Epsilon: %4f" % (episode_number, episode_reward, loss, total_steps, info, epsilon))
+            print("Episode: %d, Reward: %5f, Steps: %d, Loss: %4f, Total Step: %d, Info: %s, Epsilon: %4f" % (episode_number, episode_reward, episode_steps, loss, total_steps, info, epsilon))
             print("----------------------------------------------------------")
 
             # Save episode reward
             if self.start_learning:
                 self.writer.add_scalar('Reward per episode', episode_reward, episode_number)
+                self.writer.add_scalar('Steps per episode', episode_steps, episode_number)
 
             # # # Save weights
             # # self.agent.save_model(self.config.model_dir)
@@ -180,10 +183,10 @@ class Trainer:
         self.agent.local_network.load_state_dict(checkpoint['state_dict'])
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.previous_episode = checkpoint['episode']
+        self.previous_episode = -1#checkpoint['episode']
         #self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-        self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
-        self.steps = checkpoint['total_steps']
+        #self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
+        self.steps = 0#checkpoint['total_steps']
 
         self.agent.local_network.train()
         self.agent.target_network.train()
