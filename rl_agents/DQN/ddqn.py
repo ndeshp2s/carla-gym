@@ -159,7 +159,7 @@ class DDQNAgent:
             # if steps < 10000:
             #     action = np.random.choice(np.arange(0, 3), p = [0.5, 0.25, 0.25])
             # else:
-            action = np.random.randint(0, 3)
+            action = np.random.randint(0, 4)
 
         return action
 

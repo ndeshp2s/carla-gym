@@ -87,7 +87,7 @@ class UrbanEnv(CarlaGym):
 
     def _get_observation(self, action = 0):
         tensor1 = np.zeros([self.state_y, self.state_x, self.channel])
-        tensor2 = np.zeros([1])
+        tensor2 = np.zeros([2])
 
         # Fill ego vehicle information
         ev_trans = self.ego_vehicle.get_transform()
@@ -97,6 +97,13 @@ class UrbanEnv(CarlaGym):
             ev_speed = 0.0
         ev_speed = round(ev_speed, 2)
         tensor2[0] = self.normalize_data(ev_speed, 0.0, self.max_reachable_speed)
+
+        ev_head = (ev_trans.rotation.yaw + 360) % 360
+        ev_head = round(ev_head, 2)
+        ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
+        ev_head_norm = round(ev_head_norm, 2)
+        tensor2[1] = ev_head_norm
+
         
 
         # Fill pedestrian information
@@ -170,7 +177,9 @@ class UrbanEnv(CarlaGym):
                 p_speed_norm = self.normalize_data(p_speed, 0.0, carla_config.ped_max_speed)
                 p_speed_norm = round(p_speed_norm, 2)
 
-                tensor1[x_discrete, y_discrete, :] = [1.0, p_relative_heading_norm, p_speed_norm]
+                p_lane_norm = self.normalize_data(ped_lane, 0.0, 3)
+
+                tensor1[x_discrete, y_discrete, :] = [1.0, p_relative_heading_norm, p_speed_norm, p_lane_norm]
 
                 #print('Heading: ', p_heading, ev_heading, p_relative_heading, p_relative_heading_norm)
                 #print('Speed: ', p_speed)
@@ -201,8 +210,8 @@ class UrbanEnv(CarlaGym):
         elif ev_speed > self.max_allowed_speed:
             d_reward = -1.0
 
-        # elif ev_speed <= 0.0:
-        #     d_reward = -1.0
+        elif ev_speed <= 0.0:
+            d_reward = -1.0
         
         ## Reward(penalty) for collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
@@ -218,9 +227,9 @@ class UrbanEnv(CarlaGym):
             done = True
             info = 'Ped-Collision'
 
-        elif near_collision is True and ev_speed > 0.0:
-        #     print('near collision')
-            nc_reward = -2
+        # elif near_collision is True and ev_speed > 0.0:
+        # #     print('near collision')
+        #     nc_reward = -2
 
         # Check if goal reached
         if self.planner.done():
@@ -280,28 +289,28 @@ class UrbanEnv(CarlaGym):
 
 
         # desired_speed = self.planner.local_planner.get_target_speed()
-        if action == 1:
+        if action == 0:
             self.planner.local_planner.set_speed(1)
             control = self.planner.run_step()
             control.brake = 0.0
             control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 2:
+        elif action == 1:
             self.planner.local_planner.set_speed(-1)
             control = self.planner.run_step()
             control.brake = 0.0
             control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 3:
+        elif action == 2:
             self.planner.local_planner.set_speed(0)
             control = self.planner.run_step()
             control.brake = 1.0
             control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
-        elif action == 0:
+        elif action == 3:
             control = self.planner.run_step()
             control.brake = 0.0
             if self.get_ego_speed() < 1.0:
@@ -413,7 +422,7 @@ class UrbanEnv(CarlaGym):
         for i in range(10):
             self.step(0)       
         for i in range(10):
-            self.step(3)
+            self.step(2)
 
         state = self._get_observation()
 

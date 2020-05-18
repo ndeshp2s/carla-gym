@@ -14,7 +14,7 @@ class NeuralNetwork(nn.Module):
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 4, stride = 1)
         self.adapt = nn.AdaptiveMaxPool2d(output_size = (4, 4))
 
-        self.fc1 = nn.Linear(in_features = 64 + 1, out_features = 32, bias = True)
+        self.fc1 = nn.Linear(in_features = 64 + 2, out_features = 32, bias = True)
         self.fc2 = nn.Linear(in_features = 32, out_features = self.output_size, bias = True)
 
         self.relu = nn.ReLU()
@@ -43,7 +43,7 @@ class NeuralNetwork(nn.Module):
 
         n_features = np.prod(conv_out.size()[1:])
         output1 = conv_out.view(-1, n_features)
-        output2 = x2.view(batch_size, 1)
+        output2 = x2.view(batch_size, 2)
 
         output = torch.cat((output2, output1), dim = 1)
         output = self.fc1(output)

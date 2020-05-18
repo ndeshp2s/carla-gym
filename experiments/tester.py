@@ -75,6 +75,7 @@ class Tester:
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
 
+
         self.agent.local_network.eval()
         self.agent.target_network.eval()
 

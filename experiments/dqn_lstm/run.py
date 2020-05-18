@@ -32,7 +32,7 @@ Site_Product=namedtuple("Site_Product", ["state", "action", "reward", "next_stat
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test7'
+    experiment_dir = 'experiments/dqn_lstm/test15'
 
     # Load configuration
     config = Config()
@@ -43,13 +43,13 @@ def main(args):
         "learning_rate": 0.001,
         "batch_size": 32,
         "sequence_length": 10,
-        "buffer_size": 5000,
+        "buffer_size": 10000,
         "update_every_n_steps": 1000,
-        "min_steps_before_learning": 1000,
+        "min_steps_before_learning": 2000,
         "epsilon_start": 1,
         "epsilon_end": 0.1,
         "epsilon_before_learning": 1.0,
-        "epsilon_decay": 1e-4,
+        "epsilon_decay": 5e-5,
         "discount_rate": 0.99,
         "tau": 0.001,
     }
