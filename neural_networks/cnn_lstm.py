@@ -17,7 +17,7 @@ class NeuralNetwork(nn.Module):
 
         self.lstm_layer = nn.LSTM(input_size = 64, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = self.lstm_memory, out_features = 64)
+        self.fc1 = nn.Linear(in_features = self.lstm_memory + 2, out_features = 64)
 
         self.fc2 = nn.Linear(in_features = 64, out_features = self.output_size)
         
@@ -26,27 +26,31 @@ class NeuralNetwork(nn.Module):
         self.device = device
 
 
-    def forward(self, x, batch_size, time_step, hidden_state, cell_state):
+    def forward(self, x1, x2, batch_size, time_step, hidden_state, cell_state):
         # (N, C, H, W) batch size, input channel, input height, input width
-        x = x.view(batch_size*time_step, self.input_size[2], self.input_size[0], self.input_size[1])
+        x1 = x1.view(batch_size*time_step, self.input_size[2], self.input_size[0], self.input_size[1])
 
-        x = self.conv1(x)
-        x = self.relu(x)
+        x1 = self.conv1(x1)
+        x1 = self.relu(x1)
 
-        x = self.conv2(x)
-        x = self.relu(x)
+        x1 = self.conv2(x1)
+        x1 = self.relu(x1)
 
-        x = self.conv3(x)
-        x = self.relu(x)
+        x1 = self.conv3(x1)
+        x1 = self.relu(x1)
 
-        n_features = np.prod(x.size()[1:])
+        n_features = np.prod(x1.size()[1:])
 
-        x = x.view(batch_size, time_step, n_features)
+        x1 = x1.view(batch_size, time_step, n_features)
 
-        lstm_out = self.lstm_layer(x, (hidden_state, cell_state))
-        output = lstm_out[0][:, time_step - 1, :]
+        lstm_out = self.lstm_layer(x1, (hidden_state, cell_state))
+        output1 = lstm_out[0][:, time_step - 1, :]
         h_n = lstm_out[1][0]
         c_n = lstm_out[1][1]
+        x2 = x2.view(batch_size, time_step, 2)
+        output2 = x2[:, time_step - 1, :]
+
+        output = torch.cat((output2, output1), dim = 1)
 
         output = self.fc1(output)
         output = self.relu(output)

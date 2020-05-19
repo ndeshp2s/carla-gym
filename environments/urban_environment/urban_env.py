@@ -97,7 +97,12 @@ class UrbanEnv(CarlaGym):
             ev_speed = 0.0
         ev_speed = round(ev_speed, 2)
         tensor2[0] = self.normalize_data(ev_speed, 0.0, self.max_reachable_speed)
-        tensor2[1] = action
+        
+        ev_head = (ev_trans.rotation.yaw + 360) % 360
+        ev_head = round(ev_head, 2)
+        ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
+        ev_head_norm =round(ev_head_norm, 2)
+        tensor2[1] = ev_head_norm
         
 
         # Fill pedestrian information
@@ -170,11 +175,11 @@ class UrbanEnv(CarlaGym):
 
                 tensor1[x_discrete, y_discrete,:] = [1.0, p_relative_heading_norm, p_speed_norm, p_lane]
 
-        # tensor = []
-        # tensor.append(tensor1)
-        # tensor.append(tensor2)
+        tensor = []
+        tensor.append(tensor1)
+        tensor.append(tensor2)
         
-        return tensor1
+        return tensor
 
 
     def _get_reward(self):
@@ -193,8 +198,8 @@ class UrbanEnv(CarlaGym):
         if ev_speed > 0.0 and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
-        # elif ev_speed > self.max_allowed_speed:
-        #     d_reward = -1.0
+        elif ev_speed > self.max_allowed_speed:
+            d_reward = -1.0
 
         elif ev_speed <= 0.0:
             d_reward = -1.0
@@ -314,22 +319,34 @@ class UrbanEnv(CarlaGym):
 
         # accelerate
         if action == 0:
-            self.planner.local_planner.set_speed(20)
+            self.planner.local_planner.set_speed(1)
             control = self.planner.run_step()
             control.brake = 0.0
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
         elif action == 1:
             self.planner.local_planner.set_speed(-1)
             control = self.planner.run_step()
             control.brake = 0.0
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
         elif action == 2:
             self.planner.local_planner.set_speed(0)
             control = self.planner.run_step()
             control.brake = 1.0
+            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
+
+        elif action == 3:
+            control = self.planner.run_step()
+            control.brake = 0.0
+            if self.get_ego_speed() < 1.0:
+                control.brake = 1
+            control.throttle = round(control.throttle, 2)
+            self.ego_vehicle.apply_control(control)
+
 
         # # decelerate
         # elif action == 2:

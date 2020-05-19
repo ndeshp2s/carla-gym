@@ -45,39 +45,47 @@ class DDQNCNNLSTMAgent:
 
         batch  = self.memory.get_batch(batch_size = batch_size, time_step = time_step)
 
-        states = []
+        states1 = []
+        states2 = []
         actions = []
         rewards = []
-        next_states = []
+        next_states1 = []
+        next_states2 = []
 
         for b in batch:
-            s, a, r, ns = [], [], [], []
+            s1, s2, a, r, ns1, ns2 = [], [], [], [], [], []
             for e in b:
-                s.append(e[0])
+                s1.append(e[0][0])
+                s2.append(e[0][1])
                 a.append(e[1])
                 r.append(e[2])
-                ns.append(e[3])
+                ns1.append(e[3][0])
+                ns2.append(e[3][1])
                 
-            states.append(s)
+            states1.append(s1)
+            states2.append(s2)
             actions.append(a)
             rewards.append(r)
-            next_states.append(ns)
+            next_states1.append(ns1)
+            next_states2.append(ns2)
 
 
-        states = torch.from_numpy(np.array(states)).float().to(self.device)
+        states1 = torch.from_numpy(np.array(states1)).float().to(self.device)
+        states2 = torch.from_numpy(np.array(states2)).float().to(self.device)
         actions = torch.from_numpy(np.array(actions)).long().to(self.device)
         rewards = torch.from_numpy(np.array(rewards)).float().to(self.device)
-        next_states = torch.from_numpy(np.array(next_states)).float().to(self.device)
+        next_states1 = torch.from_numpy(np.array(next_states1)).float().to(self.device)
+        next_states2 = torch.from_numpy(np.array(next_states2)).float().to(self.device)
 
         # Get the q values for all actions from local network
-        q_predicted_all, _ = self.local_network.forward(states, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
+        q_predicted_all, _ = self.local_network.forward(x1 = states1, x2 = states2, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
         #Get the q value corresponding to the action executed
         q_predicted = q_predicted_all.gather(dim = 1, index = actions[:, time_step - 1].unsqueeze(dim = 1)).squeeze(dim = 1)
         # Get q values for all the actions of next state
-        q_next_predicted_all, _ = self.local_network.forward(next_states, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
+        q_next_predicted_all, _ = self.local_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
         
         # get q values for the actions of next state from target netwrok
-        q_next_target_all, _ = self.target_network.forward(next_states, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
+        q_next_target_all, _ = self.target_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation
@@ -122,10 +130,11 @@ class DDQNCNNLSTMAgent:
 
 
     def pick_action(self, state, batch_size, time_step, hidden_state, cell_state, epsilon, steps = 0):
-        state_tensor = torch.from_numpy(state).float().unsqueeze(0).to(self.device)
+        state_tensor1 = torch.from_numpy(state[0]).float().unsqueeze(0).to(self.device)
+        state_tensor2 = torch.from_numpy(state[1]).float().unsqueeze(0).to(self.device)
 
         # Query the network
-        model_output = self.local_network.forward(state_tensor, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state)
+        model_output = self.local_network.forward(x1 = state_tensor1, x2 = state_tensor2, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state)
         hidden_state = model_output[1][0]
         cell_state = model_output[1][1]
 
@@ -140,6 +149,6 @@ class DDQNCNNLSTMAgent:
             # if steps < 10000:
             #     action = np.random.choice(np.arrange(0, 3), p = [0.5, 0.25, 0.25])
             # else:
-            action = np.random.randint(0, 3)
+            action = np.random.randint(0, 4)
 
         return action, hidden_state, cell_state

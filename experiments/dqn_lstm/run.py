@@ -27,7 +27,7 @@ from experiments.tester import Tester
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test12'
+    experiment_dir = 'experiments/dqn_lstm/test13'
 
     # Load configuration
     config = Config()
@@ -44,7 +44,7 @@ def main(args):
         "epsilon_start": 1,
         "epsilon_end": 0.1,
         "epsilon_before_learning": 1.0,
-        "epsilon_decay": 1e-4,
+        "epsilon_decay": 5e-5,
         "discount_rate": 0.99,
         "tau": 0.001,
     }

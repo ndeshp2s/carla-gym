@@ -109,8 +109,7 @@ class Trainer:
                 # Performing learning if minumum required experiences gathered
                 loss = 0
 
-                if total_steps > self.config.hyperparameters["min_steps_before_learning"] and total_steps % self.config.learing_frequency == 0 \
-                and self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"]:
+                if self.start_learning:
                     loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], time_step = self.config.hyperparameters["sequence_length"], step = total_steps)
 
                     self.writer.add_scalar('Loss per step', loss, total_steps)
