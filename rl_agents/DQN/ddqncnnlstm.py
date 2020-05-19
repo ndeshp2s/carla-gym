@@ -151,4 +151,4 @@ class DDQNCNNLSTMAgent:
             # else:
             action = np.random.randint(0, 4)
 
-        return action, hidden_state, cell_state
+        return action, hidden_state, cell_state, model_output[0].squeeze(0)

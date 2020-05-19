@@ -109,6 +109,8 @@ class CarlaGym(gym.Env):
             synchronous_mode = True,
             fixed_delta_seconds=self.delta_seconds))
 
+        self.world.set_weather(getattr(carla.WeatherParameters, 'ClearNoon'))
+
 
     def tick(self):
         self.world.tick()

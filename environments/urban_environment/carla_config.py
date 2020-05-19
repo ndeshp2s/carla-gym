@@ -14,21 +14,21 @@ ev_goal_z = 0.2
 ev_goal_yaw = 180.0
 
 # Sensors
-rgb_sensor = False
+rgb_sensor = True
 rgb_size_x = '1920'
 rgb_size_y = '1080'
 rgb_fov = '110'
-rgb_loc_x = 2.5
+rgb_loc_x = -6.5#2.5
 rgb_loc_y = 0.0
-rgb_loc_z = 2.0
+rgb_loc_z = 4.0#2.0
 
 sem_sensor = False
 
 # Display related
-display = False
+display = True
 
 # Rendering related
-render = False
+render = True
 screen_x = 720
 screen_y = 720
 
@@ -65,7 +65,7 @@ ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] #
 ped_max_speed = 5.0
 
 # Spawner related
-num_of_ped = 8
+num_of_ped = 6
 num_of_veh = 0
 percentage_pedestrians_crossing = 0.6
 percentage_pedestrians_crossing_illegal = 0.2

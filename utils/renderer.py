@@ -21,13 +21,13 @@ class Renderer(object):
         :param height: the height of the window
         :return: None
         """
-        self.size = (width, height)
+        self.size = (width, height + 140)
         self.screen = self.display.set_mode(self.size, HWSURFACE | DOUBLEBUF)
         self.display.set_caption("Renderer")
         self.is_open = True
 
 
-    def render_image(self, image):
+    def render_image(self, image, model_output = None):
         """
         Render the given image to the pygame window
         :param image: a grayscale or color image in an arbitrary size. assumes that the channels are the last axis
@@ -40,8 +40,11 @@ class Renderer(object):
                 if image.shape[0] == 3 or image.shape[0] == 1:
                     image = np.transpose(image, (1, 2, 0))
             surface = pygame.surfarray.make_surface(image.swapaxes(0, 1))
-            surface = pygame.transform.scale(surface, self.size)
-            self.screen.blit(surface, (0, 0))
+            surface = pygame.transform.scale(surface, (720, 720))
+
+            if model_output is not None:
+                self.show(model_output)
+            self.screen.blit(surface, (0, 140))
             self.display.flip()
             self.clock.tick()
             self.get_events()
@@ -62,6 +65,79 @@ class Renderer(object):
                     self.pressed_keys.remove(event.key)
             elif event.type == pygame.QUIT:
                 self.close()
+
+    def show(self, q):
+        pygame.font.init()
+        self.GREEN = (0, 153, 76)
+        self.ORANGE = (204, 102, 0)
+        self.RED = (204, 0, 0)
+        self.YELLOW = (204, 204, 0)
+        self.screen.fill((200, 200, 200))
+
+        font = pygame.font.Font('Roboto-Light.ttf', 20)
+
+        normalized_q_values = self.normalize_array(q)
+
+
+        # 0th action
+        surface = pygame.Surface((120, 100))
+        surface.set_colorkey((0,0,0))
+        surface.set_alpha(150)
+        pygame.draw.rect(surface, self.GREEN, (0, 100, 150, -normalized_q_values[0]))
+        text = font.render("accelerate", True, (0, 0, 0))
+        
+        self.screen.blit(surface, (2.5, 10))
+        self.screen.blit(text, (13, 120))
+
+        # 1st action
+        surface = pygame.Surface((120, 100))
+        surface.set_colorkey((0,0,0))
+        surface.set_alpha(150)
+        pygame.draw.rect(surface, self.ORANGE, (0, 100, 150, -normalized_q_values[1]))
+        text = font.render("decelerate", True, (0, 0, 0))
+
+        self.screen.blit(surface, (127.5, 10))
+        self.screen.blit(text, (143, 120))
+
+        # 2nd action
+        surface = pygame.Surface((120, 100))
+        surface.set_colorkey((0,0,0))
+        surface.set_alpha(150)
+        pygame.draw.rect(surface, self.RED, (0, 100, 150, -normalized_q_values[2]))
+        text = font.render("brake", True, (0, 0, 0))
+
+        self.screen.blit(surface, (252.5, 10))
+        self.screen.blit(text, (290, 120))
+
+        # 4th action
+        surface = pygame.Surface((120, 100))
+        surface.set_colorkey((0,0,0))
+        surface.set_alpha(150)
+        pygame.draw.rect(surface, self.YELLOW, (0, 100, 150, -normalized_q_values[3]))
+        text = font.render("steer", True, (0, 0, 0))
+
+        self.screen.blit(surface, (377.5, 10))
+        self.screen.blit(text, (413, 120))
+        self.display.flip()
+
+    def normalize_array(self, array): 
+        old_min = min(array)
+        old_max = max(array)
+
+        new_min = 0
+        new_max = 100
+
+        old_range = (old_max - old_min)
+        new_range = (new_max - new_min)
+
+        norm_array = []
+        for i in array:
+            new_value = (((i - old_min) * new_range) / old_range) + new_min
+            norm_array.append(new_value)
+
+        return norm_array
+
+
 
     def get_key_names(self, key_ids):
         """

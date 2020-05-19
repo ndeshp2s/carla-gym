@@ -66,7 +66,7 @@ class UrbanEnv(CarlaGym):
             self.init_renderer()
 
 
-    def step(self, action = None,sp=25):
+    def step(self, action = None,sp=25, model_output = None):
 
         if action is not None:
             self._take_action(action, sp)
@@ -80,7 +80,7 @@ class UrbanEnv(CarlaGym):
         if self.render and self.is_render_enabled: 
             if self.rgb_image is not None:
                 img = self.get_rendered_image()
-                self.renderer.render_image(img)
+                self.renderer.render_image(img, model_output)
 
         return state, reward, done, info 
 
