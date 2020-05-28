@@ -5,6 +5,8 @@ import random
 import numpy as np
 import math
 import transforms3d
+from shapely.geometry import Polygon, Point
+
 
 import gym
 from gym import spaces
@@ -53,8 +55,10 @@ class UrbanEnv(CarlaGym):
         self.ego_vehicle = None
         self.current_speed = 0.0
         self.previous_speed = 0.0
-        self.max_allowed_speed = 20.0
+        self.max_allowed_speed = 15.0
         self.max_reachable_speed = 25.0
+
+        self.previous_throttle = 0.0
 
         
         # Rendering related
@@ -70,6 +74,8 @@ class UrbanEnv(CarlaGym):
 
         if action is not None:
             self._take_action(action, sp)
+            #self.ego_vehicle.set_velocity(20)
+
 
         self.tick()
 
@@ -195,42 +201,70 @@ class UrbanEnv(CarlaGym):
             ev_speed = 0.0
         ev_speed = round(ev_speed, 2)
 
-        if ev_speed > 0.0 and ev_speed <= self.max_allowed_speed:
+        if ev_speed > 0.0:# and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
-        elif ev_speed > self.max_allowed_speed:
-            d_reward = -1.0
+        # elif ev_speed > self.max_allowed_speed:
+        #     d_reward = -1.0
 
         elif ev_speed <= 0.0:
-            d_reward = -1.0
-        
-        ## Reward(penalty) for collision
+            d_reward = -0.1
+
+
+        # Reward/Penalty for near-collision, collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
-        collision, near_collision, pedestrian = self.is_collision(pedestrian_list)
+        ttc, near_collision, collision = self.find_ttc(pedestrian_list)
 
-        if collision is True and ev_speed > 0.0:
-            #print('collision')
-            c_reward = -10
+        if collision:
+            if ev_speed > 0.0:
+                c_reward = -10
+                info = 'Collision'
+            else:
+                info = 'Ped-Collision'
+
             done = True
-            info = 'Collision'
+            
 
-        elif collision is True:
-            done = True
-            info = 'Ped-Collision'
+        elif near_collision:
+            if (1.0 < ttc <= 2.0):
+                nc_reward = -1.0
+            elif ttc <= 1.0:
+                nc_reward = -2.0
 
-        elif near_collision is True and ev_speed > 0.0:
-            #print('near collision')
-            nc_reward = -2
 
         # Check if goal reached
         if self.planner.done():
             done = True
             info = 'Goal Reached'
-        # ev_trans = self.ego_vehicle.get_transform()
 
-        # d = self.distance(ev_trans, carla.Transform(carla.Location(x = carla_config.ev_goal_x, y = carla_config.ev_goal_y, z = carla_config.ev_goal_z)))
-        # if d < 6:
+        
+        # ## Reward(penalty) for collision
+        # pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
+        # collision, near_collision, pedestrian = self.is_collision(pedestrian_list)
+
+        # if collision is True and ev_speed > 0.0:
+        #     #print('collision')
+        #     c_reward = -10
         #     done = True
+        #     info = 'Collision'
+
+        # elif collision is True:
+        #     done = True
+        #     info = 'Ped-Collision'
+
+        # elif near_collision is True and ev_speed > 0.0:
+        #     #print('near collision')
+        #     nc_reward = -2
+
+        # # Check if goal reached
+        # if self.planner.done():
+        #     done = True
+        #     info = 'Goal Reached'
+        # # ev_trans = self.ego_vehicle.get_transform()
+
+        # # d = self.distance(ev_trans, carla.Transform(carla.Location(x = carla_config.ev_goal_x, y = carla_config.ev_goal_y, z = carla_config.ev_goal_z)))
+        # # if d < 6:
+        # #     done = True
 
 
         total_reward = d_reward + nc_reward + c_reward
@@ -239,139 +273,133 @@ class UrbanEnv(CarlaGym):
         return total_reward, done, info
 
 
-    def _take_action(self, action, sp):
-                # control = self.planner.run_step()
-        # self.ego_vehicle.apply_control(control)
+    def _take_action(self, action, sp = None):
+        
 
-        # self.current_speed = get_speed(self.ego_vehicle)
-
-        # if action == 0:
-        #     desired_speed = 0
-        #     if self.current_speed < self.previous_speed:
-        #         desired_speed = self.previous_speed + 1.0
-        #     elif self.current_speed > self.previous_speed:
-        #         desired_speed = self.current_speed + 1.0
-
-        # elif action == 1:
-        #     desired_speed = 0
-        #     if self.current_speed > self.previous_speed:
-        #         desired_speed = self.previous_speed - 1.0
-        #     elif self.current_speed < self.previous_speed:
-        #         desired_speed = self.current_speed - 1.0
-
-        # elif action == 2:
-        #     desired_speed = 0
-
-        # elif action == 3:
-        #     desired_speed = -1
-
-
-        # self.planner.local_planner.set_speed(desired_speed)
-        # control = self.planner.run_step()
-        # control.brake = 0.0
-        # self.ego_vehicle.apply_control(control)
-
-        # print(self.current_speed, self.previous_speed, desired_speed)
-        # if desired_speed != -1:
-        #     self.previous_speed = desired_speed
-
-
-
-
-
-        # desired_speed = self.planner.local_planner.get_target_speed()
-        # if action == 1:
-        #     desired_speed += 1
-        #     self.planner.local_planner.set_speed(1)
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     control.throttle = round(control.throttle, 2)
-        #     self.ego_vehicle.apply_control(control)
-
-        # elif action == 2:
-        #     desired_speed -= 1
-        #     self.planner.local_planner.set_speed(-1)
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     control.throttle = round(control.throttle, 2)
-        #     self.ego_vehicle.apply_control(control)
-
-        # elif action == 3:
-        #     self.planner.local_planner.set_speed(0)
-        #     control = self.planner.run_step()
-        #     control.brake = 1.0
-        #     control.throttle = round(control.throttle, 2)
-        #     self.ego_vehicle.apply_control(control)
-
-        # elif action == 0:
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     if self.get_ego_speed() < 1.0:
-        #         control.brake = 1
-        #     control.throttle = round(control.throttle, 2)
-        #     self.ego_vehicle.apply_control(control)
-        # control = self.planner.run_step()
-        # self.ego_vehicle.apply_control(control)
-
-        #mps_kmph_conversion = 3.6
-
-        # target_speed = 0.0
-
-        # accelerate
         if action == 0:
-            self.planner.local_planner.set_speed(1)
+            if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 1) or self.planner.local_planner.get_target_speed() < 10.0: 
+                self.planner.local_planner.set_speed(1.0)
+
             control = self.planner.run_step()
-            control.brake = 0.0
-            control.throttle = round(control.throttle, 2)
+            
+            if control.brake > 0.0:
+                control.throttle = control.brake/10
+                control.brake = control.brake/20
+
             self.ego_vehicle.apply_control(control)
 
         elif action == 1:
-            self.planner.local_planner.set_speed(-1)
+            if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 1):
+                self.planner.local_planner.set_speed(-1.0)
             control = self.planner.run_step()
-            control.brake = 0.0
-            control.throttle = round(control.throttle, 2)
             self.ego_vehicle.apply_control(control)
 
         elif action == 2:
             self.planner.local_planner.set_speed(0)
             control = self.planner.run_step()
             control.brake = 1.0
-            control.throttle = round(control.throttle, 2)
+            control.throttle = 0.0
             self.ego_vehicle.apply_control(control)
 
         elif action == 3:
             control = self.planner.run_step()
-            control.brake = 0.0
-            if self.get_ego_speed() < 1.0:
-                control.brake = 1
-            control.throttle = round(control.throttle, 2)
+            
+            if self.planner.local_planner.get_target_speed() > get_speed(self.ego_vehicle):
+                control.brake = 0
+            else:
+                control.brake = control.brake/20
+
+            if control.brake > 0.0:
+                control.throttle = control.brake/10
+                control.brake = control.brake/20
+
             self.ego_vehicle.apply_control(control)
-
-
-        # # decelerate
-        # elif action == 2:
-        #     current_speed = self.get_ego_speed()
-        #     desired_speed = current_speed - 1.0
-        #     #desired_speed *= 3.6
-        #     self.current_speed = desired_speed
-        #     self.planner.local_planner.set_speed(round(desired_speed, 2))
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     self.ego_vehicle.apply_control(control)
-
-
-        # elif action == 3: # emergency stop
-        #     self.current_speed = 0
-        #     self.emergency_stop()
-
         
-        # # speed tracking
-        # elif action == 0:
-        #     #self.planner.local_planner.set_speed(self.current_speed)
-        #     control = self.planner.run_step()
-        #     control.brake = 0.0
-        #     self.ego_vehicle.apply_control(control)
 
+
+    # def _take_action(self, action, sp = None):
+    #     # self.planner.run_step()
+
+    #     # waypoint = self.planner.local_planner.get_next_waypoint()
+    #     # self.world.debug.draw_string(waypoint.transform.location, 'O', draw_shadow=False, 
+    #     #     color=carla.Color(r=255, g=0, b=0), life_time=10.0,
+    #     #     persistent_lines=True)
+
+    #     # vehicle_transform = self.ego_vehicle.get_transform()
+    #     # v_begin = vehicle_transform.location
+    #     # v_end = v_begin + carla.Location(x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
+    #     #                                  y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
+
+    #     # v_vec = np.array([v_end.x - v_begin.x, v_end.y - v_begin.y, 0.0])
+    #     # w_vec = np.array([waypoint.transform.location.x -
+    #     #                   v_begin.x, waypoint.transform.location.y -
+    #     #                   v_begin.y, 0.0])
+    #     # _dot = math.acos(np.clip(np.dot(w_vec, v_vec) /
+    #     #                          (np.linalg.norm(w_vec) * np.linalg.norm(v_vec)), -1.0, 1.0))
+
+    #     # _cross = np.cross(v_vec, w_vec)
+    #     # if _cross[2] < 0:
+    #     #     _dot *= -1.0
+
+    #     # ev_heading_radians = _dot + math.radians(vehicle_transform.rotation.yaw)#round(_dot, 2)
+    #     #ev_heading_radians = math.radians(ev_heading_radians)
+
+    #     previous_velocity_vector = self.ego_vehicle.get_velocity()
+    #     previous_velocity = math.sqrt(previous_velocity_vector.x*previous_velocity_vector.x + previous_velocity_vector.y*previous_velocity_vector.y)
+    #     if previous_velocity < 0.0:
+    #         previous_velocity = 0.0
+
+    #     previous_velocity = round(previous_velocity, 2)    
+    #     print('previous_velocity:', previous_velocity)
+
+    #     acceleration = 1
+    #     deceleration = -1
+    #     brake = -10
+    #     dt = 1.0
+    #     desired_velocity = 0
+
+    #     if action == 0:
+    #         desired_velocity = previous_velocity + acceleration*dt
+
+    #     elif action == 1:
+    #         desired_velocity = previous_velocity + deceleration*dt
+
+    #     elif action == 2:
+    #         desired_velocity = previous_velocity + brake*dt
+
+    #     elif action == 3:
+    #         desired_velocity = previous_velocity
+
+    #     if desired_velocity < 0.0:
+    #         desired_velocity = 0.0
+
+    #     # if desired_velocity > 10.0:
+    #     #     desired_velocity = 10.0
+
+    #     desired_velocity = round(desired_velocity, 2)    
+    #     print('desired_velocity:', desired_velocity)
+
+    #     # set velocity
+    #     ev_trans = self.ego_vehicle.get_transform()
+    #     ev_heading = (ev_trans.rotation.yaw + 360) % 360
+    #     ev_heading = round(ev_heading, 2)
+    #     ev_heading_radians = math.radians(ev_heading)
+    #     ev_heading_radians = round(ev_heading_radians, 2)
+
+    #     ev_speed_x = desired_velocity*math.cos(ev_heading_radians)
+    #     ev_speed_y = desired_velocity*math.sin(ev_heading_radians)
+    #     ev_speed_x = round(ev_speed_x, 2)
+    #     ev_speed_y = round(ev_speed_y, 2)
+
+    #     #self.ego_vehicle.set_velocity(carla.Vector3D(x = ev_speed_x, y = ev_speed_y, z = 0))
+    #     self.planner.local_planner.set_speed(desired_velocity)
+    #     control = self.planner.run_step()
+    #     self.ego_vehicle.apply_control(control)
+    #     #self.ego_vehicle.set_velocity(carla.Vector3D(x = ev_speed_x, y = ev_speed_y, z = 0))
+
+
+
+# +
 
     def emergency_stop(self):
         control = carla.VehicleControl()
@@ -387,21 +415,19 @@ class UrbanEnv(CarlaGym):
         if self.server:
             self.close() 
 
-        self.setup_client_and_server(display = carla_config.display, rendering = carla_config.render)
+        self.setup_client_and_server(display = carla_config.display, rendering = carla_config.render, reconnect_client_only = client_only)
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings(fps = 10.0, no_rendering = not carla_config.render)
+        self.apply_settings(fps = 1.0, no_rendering = not carla_config.render)
 
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
         for i in range(10):
-            self.step(0)
+            self.step(0)       
         for i in range(10):
-            self.step(2)       
-        # for i in range(10):
-        #     self.step(3)
+            self.step(2)
 
         state = self._get_observation()
 
@@ -533,6 +559,76 @@ class UrbanEnv(CarlaGym):
 
 
 
+    def find_ttc(self, entity_list): # Returns ttc value, ttc true/false flag, collision true/false flag 
+        ev_trans = self.ego_vehicle.get_transform()
+        ev_heading = (ev_trans.rotation.yaw + 360) % 360
+        ev_heading = round(ev_heading, 2)
+        ev_heading_radians = math.radians(ev_heading)
+        ev_heading_radians = round(ev_heading_radians, 2)
+
+        ev_speed = get_speed(self.ego_vehicle)
+        ev_speed_x = ev_speed*math.cos(ev_heading_radians)
+        ev_speed_y = ev_speed*math.sin(ev_heading_radians)
+        ev_speed_x = round(ev_speed_x, 2)
+        ev_speed_y = round(ev_speed_y, 2)
+
+        dt = 0.0
+        ttc = 0.0
+
+        while dt < 3.0:
+            dt = dt + 0.1
+            dt = round(dt, 1)
+
+            # ego vehicle predicted position
+            ev_new_position_x = ev_trans.location.x + ev_speed_x*dt
+            ev_new_position_y = ev_trans.location.y + ev_speed_y*dt
+            ev_new_position_x = round(ev_new_position_x, 2)
+            ev_new_position_y = round(ev_new_position_y, 2)
+
+            ev_bb = self.ego_vehicle.bounding_box
+            ev_bb.extent.x = 3.0
+            ev_bb.extent.y = 1.5
+
+            ev_vertices = ev_bb.get_world_vertices(ev_trans)
+            ev_vertices_next = ev_bb.get_world_vertices(carla.Transform(carla.Location(x = ev_new_position_x, y = ev_new_position_y, z = ev_trans.location.z), ev_trans.rotation))
+
+            ev_polygon = Polygon([(ev_vertices[0].x, ev_vertices[0].y), (ev_vertices[2].x, ev_vertices[2].y), (ev_vertices[4].x, ev_vertices[4].y), (ev_vertices[6].x, ev_vertices[6].y)])
+            ev_polygon_next = Polygon([(ev_vertices_next[0].x, ev_vertices_next[0].y), (ev_vertices_next[2].x, ev_vertices_next[2].y), (ev_vertices_next[4].x, ev_vertices_next[4].y), (ev_vertices_next[6].x, ev_vertices_next[6].y)])
+
+
+            for ped in entity_list:
+                ped_trans = ped.get_transform()
+                ped_heading = (ped_trans.rotation.yaw + 360) % 360
+                ped_heading = round(ped_heading, 2)
+                ped_heading_radians = math.radians(ped_heading)
+                ped_heading_radians = round(ped_heading_radians, 2)
+
+                ped_speed = get_speed(ped)
+                ped_speed = round(ped_speed, 2)
+                ped_speed_x = ped_speed*math.cos(ped_heading_radians)
+                ped_speed_y = ped_speed*math.sin(ped_heading_radians)
+                ped_speed_x = round(ped_speed_x, 2)
+                ped_speed_y = round(ped_speed_y, 2)
+
+                ped_new_position_x = ped_trans.location.x + ped_speed_x*dt
+                ped_new_position_y = ped_trans.location.y + ped_speed_y*dt
+                ped_new_position_x = round(ped_new_position_x, 2)
+                ped_new_position_y = round(ped_new_position_y, 2)
+
+                ped_point_ttc = Point(ped_new_position_x, ped_new_position_y).buffer(1.0)
+                ped_point_collision = Point(ped_trans.location.x, ped_trans.location.y).buffer(0.25)
+
+
+                # Check for collision
+                if ev_polygon.intersects(ped_point_collision):
+                    return 0, False, True
+
+                if ev_polygon_next.intersects(ped_point_ttc) == True:
+                    ttc = dt
+
+                    return ttc, True, False
+
+        return 0, False, False
 
     def is_collision(self, entity_list):
 
@@ -594,3 +690,10 @@ class UrbanEnv(CarlaGym):
             ev_speed = 0.0
         
         return ev_speed
+
+    def draw_point(self, x = 0, y = 0, z = 0.1):
+        self.world.debug.draw_string(carla.Location(x = x, y = y, z = z), 'O', draw_shadow=False, 
+            color=carla.Color(r=255, g=0, b=0), life_time=0.1, persistent_lines=True)
+
+    def get_speed(self, p):
+        return get_speed(p)
