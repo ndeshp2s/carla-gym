@@ -70,7 +70,7 @@ class UrbanEnv(CarlaGym):
             self.init_renderer()
 
 
-    def step(self, action = None,sp=25, model_output = None):
+    def step(self, action = None,sp=25, model_output = None, speed = 0):
 
         if action is not None:
             self._take_action(action, sp)
@@ -86,7 +86,7 @@ class UrbanEnv(CarlaGym):
         if self.render and self.is_render_enabled: 
             if self.rgb_image is not None:
                 img = self.get_rendered_image()
-                self.renderer.render_image(img, model_output)
+                self.renderer.render_image(img, model_output = model_output, speed = speed)
 
         return state, reward, done, info 
 
@@ -201,19 +201,20 @@ class UrbanEnv(CarlaGym):
             ev_speed = 0.0
         ev_speed = round(ev_speed, 2)
 
-        if ev_speed > 0.0:# and ev_speed <= self.max_allowed_speed:
+        if ev_speed > 2.0:# and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
         # elif ev_speed > self.max_allowed_speed:
         #     d_reward = -1.0
 
-        elif ev_speed <= 0.0:
-            d_reward = -0.1
+        elif ev_speed <= 2.0:
+            d_reward = -1.0
 
 
         # Reward/Penalty for near-collision, collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
         ttc, near_collision, collision = self.find_ttc(pedestrian_list)
+        #print(ttc, near_collision, collision)
 
         if collision:
             if ev_speed > 0.0:
@@ -266,30 +267,29 @@ class UrbanEnv(CarlaGym):
         # # if d < 6:
         # #     done = True
 
+        # if near_collision == True or collision == True:
+        #     total_reward = nc_reward + c_reward
 
+        # else:
         total_reward = d_reward + nc_reward + c_reward
+
         total_reward = round(total_reward, 2)
 
         return total_reward, done, info
+
 
 
     def _take_action(self, action, sp = None):
         
 
         if action == 0:
-            if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 1) or self.planner.local_planner.get_target_speed() < 10.0: 
+            if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 2) or self.planner.local_planner.get_target_speed() < 10.0: 
                 self.planner.local_planner.set_speed(1.0)
-
             control = self.planner.run_step()
-            
-            if control.brake > 0.0:
-                control.throttle = control.brake/10
-                control.brake = control.brake/20
-
             self.ego_vehicle.apply_control(control)
 
         elif action == 1:
-            if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 1):
+            if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 2):
                 self.planner.local_planner.set_speed(-1.0)
             control = self.planner.run_step()
             self.ego_vehicle.apply_control(control)
@@ -302,22 +302,54 @@ class UrbanEnv(CarlaGym):
             self.ego_vehicle.apply_control(control)
 
         elif action == 3:
-            control = self.planner.run_step()
-            
-            if self.planner.local_planner.get_target_speed() > get_speed(self.ego_vehicle):
-                control.brake = 0
-            else:
-                control.brake = control.brake/20
-
-            if control.brake > 0.0:
-                control.throttle = control.brake/10
-                control.brake = control.brake/20
-
+            control = self.planner.run_step()       
             self.ego_vehicle.apply_control(control)
+
+    # def _take_action(self, action, sp = None):
+        
+
+    #     if action == 0:
+    #         #if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 1) or self.planner.local_planner.get_target_speed() < 10.0: 
+    #         self.planner.local_planner.set_speed(1.0)
+
+    #         control = self.planner.run_step()
+            
+    #         if control.brake > 0.0:
+    #             control.throttle = control.brake/10
+    #             control.brake = control.brake/20
+
+    #         self.ego_vehicle.apply_control(control)
+
+    #     elif action == 1:
+    #         if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 1):
+    #             self.planner.local_planner.set_speed(-1.0)
+    #         control = self.planner.run_step()
+    #         self.ego_vehicle.apply_control(control)
+
+    #     elif action == 2:
+    #         self.planner.local_planner.set_speed(0)
+    #         control = self.planner.run_step()
+    #         control.brake = 1.0
+    #         control.throttle = 0.0
+    #         self.ego_vehicle.apply_control(control)
+
+    #     elif action == 3:
+    #         control = self.planner.run_step()
+            
+    #         if self.planner.local_planner.get_target_speed() > get_speed(self.ego_vehicle):
+    #             control.brake = 0
+    #         else:
+    #             control.brake = control.brake/20
+
+    #         if control.brake > 0.0:
+    #             control.throttle = control.brake/10
+    #             control.brake = control.brake/20
+
+    #         self.ego_vehicle.apply_control(control)
         
 
 
-    # def _take_action(self, action, sp = None):
+    #def _take_action(self, action, sp = None):
     #     # self.planner.run_step()
 
     #     # waypoint = self.planner.local_planner.get_next_waypoint()
@@ -373,8 +405,8 @@ class UrbanEnv(CarlaGym):
     #     if desired_velocity < 0.0:
     #         desired_velocity = 0.0
 
-    #     # if desired_velocity > 10.0:
-    #     #     desired_velocity = 10.0
+    # #     # if desired_velocity > 10.0:
+    # #     #     desired_velocity = 10.0
 
     #     desired_velocity = round(desired_velocity, 2)    
     #     print('desired_velocity:', desired_velocity)
@@ -391,11 +423,11 @@ class UrbanEnv(CarlaGym):
     #     ev_speed_x = round(ev_speed_x, 2)
     #     ev_speed_y = round(ev_speed_y, 2)
 
-    #     #self.ego_vehicle.set_velocity(carla.Vector3D(x = ev_speed_x, y = ev_speed_y, z = 0))
+    # #     #self.ego_vehicle.set_velocity(carla.Vector3D(x = ev_speed_x, y = ev_speed_y, z = 0))
     #     self.planner.local_planner.set_speed(desired_velocity)
     #     control = self.planner.run_step()
     #     self.ego_vehicle.apply_control(control)
-    #     #self.ego_vehicle.set_velocity(carla.Vector3D(x = ev_speed_x, y = ev_speed_y, z = 0))
+    #     self.ego_vehicle.set_velocity(carla.Vector3D(x = ev_speed_x, y = ev_speed_y, z = 0))
 
 
 
@@ -419,7 +451,7 @@ class UrbanEnv(CarlaGym):
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings(fps = 1.0, no_rendering = not carla_config.render)
+        self.apply_settings(fps = 10.0, no_rendering = not carla_config.render)
 
         self.world.get_map().generate_waypoints(1.0)
 

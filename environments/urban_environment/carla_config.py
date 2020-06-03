@@ -1,6 +1,6 @@
 town = "Town11"
-sp_x = 34.0
-sp_y = -1.8
+sp_x = 40.0
+sp_y = -1.7
 sp_z = 0.2
 sp_yaw = 180.0
 sp_pitch = 0.0
@@ -62,13 +62,13 @@ y_size = 32
 ## standing on road (group of people standing on road side)
 ## pedestrian walking on road
 ped_beh_prob = [1.0, 0.0, 0.0, 0.0,0.0] # 
-ped_max_speed = 5.0
+ped_max_speed = 2.5
 
 # Spawner related
-num_of_ped = 6
+num_of_ped = 5
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.6
-percentage_pedestrians_crossing_illegal = 0.2
+percentage_pedestrians_crossing = 0.0
+percentage_pedestrians_crossing_illegal = 0.0
 ped_spawn_min_dist = 5.0
 ped_spawn_max_dist = 30.0
 ped_max_dist = 31.0

@@ -12,14 +12,14 @@ class NeuralNetwork(nn.Module):
         self.lstm_memory = lstm_memory
 
         self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 4)
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 2, stride = 2)
-        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 4, stride = 1)
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2)
+        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1)
 
-        self.lstm_layer = nn.LSTM(input_size = 64, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
+        self.lstm_layer = nn.LSTM(input_size = 256, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = self.lstm_memory + 2, out_features = 64)
+        self.fc1 = nn.Linear(in_features = self.lstm_memory + 2, out_features = 32)
 
-        self.fc2 = nn.Linear(in_features = 64, out_features = self.output_size)
+        self.fc2 = nn.Linear(in_features = 32, out_features = self.output_size)
         
         self.relu = nn.ReLU()
 
@@ -32,14 +32,18 @@ class NeuralNetwork(nn.Module):
 
         x1 = self.conv1(x1)
         x1 = self.relu(x1)
+        #print(x1.size())
 
         x1 = self.conv2(x1)
         x1 = self.relu(x1)
+        #print(x1.size())
 
         x1 = self.conv3(x1)
         x1 = self.relu(x1)
+        #print(x1.size())
 
         n_features = np.prod(x1.size()[1:])
+        #print(n_features)
 
         x1 = x1.view(batch_size, time_step, n_features)
 
@@ -133,7 +137,7 @@ if DEBUG:
     TIME_STEP = 1
 
     # Dummy data
-    x = np.zeros([60,30,3])
+    x = np.zeros([32,32,4])
     batch = []
     for i in range(TIME_STEP*BATCH_SIZE):
         batch.append(x)
@@ -149,7 +153,7 @@ if DEBUG:
 
     # Dummy data
     x = []
-    x.append(np.zeros([60,30,3]))
+    x.append(np.zeros([32,32,4]))
     x.append(np.zeros([2]))
 
     batch = []

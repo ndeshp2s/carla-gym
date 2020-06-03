@@ -60,6 +60,12 @@ class Spawner(object):
             pass
 
 
+    def set_factors(self, crossing, illegal_crossing):
+        self.world.set_pedestrians_cross_factor(crossing)
+        self.world.set_pedestrians_cross_illegal_factor(illegal_crossing)
+
+
+
     def run_step(self, ev_trans = None, step_num = 0):
 
         ev_trans = self.get_ev_trans()
@@ -133,7 +139,7 @@ class Spawner(object):
                 controller.go_to_location(goal.location)
                 #controller.go_to_location(self.world.get_random_location_from_navigation())
 
-                controller.set_max_speed(round(random.uniform(2.0, carla_config.ped_max_speed)*0.1, 2))
+                controller.set_max_speed(round(random.uniform(2.0, carla_config.ped_max_speed), 2))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id

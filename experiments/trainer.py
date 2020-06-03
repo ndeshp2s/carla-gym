@@ -42,11 +42,12 @@ class Trainer:
         
         epsilon = self.config.hyperparameters["epsilon_before_learning"]
 
-    #     #for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1):
+        for ep_num in range(previous_episode + 1, self.config.number_of_episodes + 1 + self.config.hyperparameters["batch_size"]):
         
-        while total_steps < self.config.total_steps:
+        #while total_steps < self.config.total_steps:
 
             # Reset the environment and variables for new episode
+            episode_steps = 0
             episode_reward = 0
             state = self.env.reset()
 
@@ -68,6 +69,7 @@ class Trainer:
                 if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"] and self.start_learning == False:
                     self.start_learning = True
                     episode_number = previous_episode + 1
+                    ep_num = previous_episode + 1
                     total_steps = 0
 
                     epsilon = self.config.hyperparameters["epsilon_start"]
@@ -75,20 +77,21 @@ class Trainer:
                     # if self.reset_epsilon:
                     #     epsilon = self.config.hyperparameters["epsilon_start"]
                     #     self.reset_epsilon = False
+                    print('Pre training Memory filled. ep_num, episode_number', ep_num, episode_number)
 
-                
+
                 # Select action
-                action, hidden_state, cell_state = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
+                action, hidden_state, cell_state, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon, learning = self.start_learning)
                 if DEBUG:
-                    #action = input('Enter to continue: ')
-                    #action = int(action)
-                    input('Enter to continue: ')
+                    action = input('Enter to continue: ')
+                    action = int(action)
+                   # input('Enter to continue: ')
 
                 
                 # Execute action for 4 times
-                #next_state, reward, done, info = self.env.step(action)
-                for i in range(1):
-                    next_state, reward, done, info = self.env.step(action)
+                next_state, reward, done, info = self.env.step(action)
+                #for i in range(3):
+                #    next_state, reward, done, info = self.env.step(3)
 
                 # Add experience to memory of local network
                 local_memory.append((state, action, reward, next_state, done))
@@ -112,7 +115,7 @@ class Trainer:
                 if self.start_learning:
                     loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], time_step = self.config.hyperparameters["sequence_length"], step = total_steps)
 
-                    self.writer.add_scalar('Loss per step', loss, total_steps)
+                    #self.writer.add_scalar('Loss per step', loss, total_steps)
 
 
 
@@ -123,10 +126,10 @@ class Trainer:
 
                 # epsilon update
                 # Only after a few initial steps
-                if self.start_learning:
-                    epsilon = self.epsilon_decay(total_steps)
+                # if self.start_learning:
+                #     epsilon = self.epsilon_decay(total_steps)
 
-                    self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
+                #     self.writer.add_scalar('Epsilon decay', epsilon, total_steps)
 
 
             # Save the episode
@@ -138,10 +141,11 @@ class Trainer:
             print("Episode: %d, Reward: %5f, Steps: %d, Loss: %4f, Total Step: %d, Info: %s, Epsilon: %4f" % (episode_number, episode_reward, episode_steps, loss, total_steps, info, epsilon))
             print("----------------------------------------------------------")
 
-            # Save episode reward
+            # Save episode reward and loss
             if self.start_learning:
                 self.writer.add_scalar('Reward per episode', episode_reward, episode_number)
                 self.writer.add_scalar('Steps per episode', episode_steps, episode_number)
+                self.writer.add_scalar('Loss per episode', loss, episode_number)
 
             # # # Save weights
             # # self.agent.save_model(self.config.model_dir)
@@ -162,8 +166,17 @@ class Trainer:
             # # #     self.agent.save_checkpoint()
 
             # Update epsiode count
-            #if self.start_learning:
+            if self.start_learning == False:
+                ep_num = previous_episode + 1
+
             episode_number = episode_number + 1
+
+            # Epsilon decay
+            if self.start_learning:
+                if epsilon > self.config.hyperparameters["epsilon_end"]:
+                    epsilon -= (self.config.hyperparameters["epsilon_start"] - self.config.hyperparameters["epsilon_end"])/self.config.number_of_episodes
+
+                self.writer.add_scalar('Epsilon decay', epsilon, episode_number)
 
 
         # Once done, close environment
@@ -182,10 +195,10 @@ class Trainer:
         self.agent.local_network.load_state_dict(checkpoint['state_dict'])
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.previous_episode = -1#checkpoint['episode']
-        #self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-        #self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
-        self.steps = 0#checkpoint['total_steps']
+        self.previous_episode = checkpoint['episode']
+        self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
+        self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
+        self.steps = checkpoint['total_steps']
 
         self.agent.local_network.train()
         self.agent.target_network.train()

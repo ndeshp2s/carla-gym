@@ -27,7 +27,7 @@ class Renderer(object):
         self.is_open = True
 
 
-    def render_image(self, image, model_output = None):
+    def render_image(self, image, model_output = None, speed = 0):
         """
         Render the given image to the pygame window
         :param image: a grayscale or color image in an arbitrary size. assumes that the channels are the last axis
@@ -43,7 +43,7 @@ class Renderer(object):
             surface = pygame.transform.scale(surface, (720, 720))
 
             if model_output is not None:
-                self.show(model_output)
+                self.show(q = model_output, speed = speed)
             self.screen.blit(surface, (0, 140))
             self.display.flip()
             self.clock.tick()
@@ -66,7 +66,7 @@ class Renderer(object):
             elif event.type == pygame.QUIT:
                 self.close()
 
-    def show(self, q):
+    def show(self, q, speed = 0):
         pygame.font.init()
         self.GREEN = (0, 153, 76)
         self.ORANGE = (204, 102, 0)
@@ -118,6 +118,16 @@ class Renderer(object):
 
         self.screen.blit(surface, (377.5, 10))
         self.screen.blit(text, (413, 120))
+
+        # Speed
+        font_unit = pygame.font.Font('Roboto-LightItalic.ttf', 20)
+        unit = font_unit.render("km/hr", 1, (0, 0, 0))
+        speed_string = font.render(str(speed), 1, (0, 0, 0))
+
+        self.screen.blit(speed_string, (580, 50))
+        self.screen.blit(unit, (630, 50))
+
+
         self.display.flip()
 
     def normalize_array(self, array): 

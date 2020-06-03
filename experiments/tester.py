@@ -30,7 +30,7 @@ class Tester:
 
             input('Enter to continue: ')
 
-            for step_num in range(self.config.steps_per_episode):
+            for step_num in range(self.config.steps_per_episode*5):
                 # Select action
                 action, hidden_state, cell_state, model_output = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, \
                                                                                                         hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
@@ -40,9 +40,10 @@ class Tester:
                 
 
                 # Execute action for 10 times
-                next_state, reward, done, info = self.env.step(action, model_output = model_output)
-                # for i in range(9):
-                #     next_state, reward, done, info = self.env.step(3)
+                ev_speed = self.env.get_ego_speed()
+                next_state, reward, done, info = self.env.step(action, model_output = model_output, speed = ev_speed)
+                # for i in range(3):
+                #     next_state, reward, done, info = self.env.step(action)
                 print(action, self.env.get_ego_speed(), reward, self.env.planner.local_planner.get_target_speed())
                 # Update parameters
                 state = next_state
@@ -52,6 +53,12 @@ class Tester:
                 if self.config.spawner:
                     self.spawner.run_step()
 
+                # if (130 > step_num > 100) or (230 > step_num > 200):
+                #     self.spawner.set_factors(0.0, 0.0)
+
+                # else: 
+                #     self.spawner.set_factors(0.7, 0.2)
+                #     self.spawner.run_step()
 
                 if done:
                     self.spawner.destroy_all()

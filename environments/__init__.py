@@ -5,3 +5,8 @@ register(
     entry_point='environments.urban_environment.urban_env:UrbanEnv',
 )
 
+register(
+    id='RuleBased-v0',
+    entry_point='environments.urban_environment.rule_based:RuleBasedEnv',
+)
+
