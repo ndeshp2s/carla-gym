@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from experiments.config import Config
 from rl_agents.DQN.replay_buffer import ReplayBuffer
-from neural_networks.cnn_lstm import NeuralNetwork
+from neural_networks.cnn_cnn_lstm import NeuralNetwork
 
 
 class DDQNCNNLSTMAgent:
@@ -38,7 +38,7 @@ class DDQNCNNLSTMAgent:
         self.memory.add_episode(episode)
 
 
-    def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = True):
+    def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = False):
 
 
         hidden_batch, cell_batch = self.local_network.init_hidden_states(batch_size = batch_size)
@@ -78,14 +78,14 @@ class DDQNCNNLSTMAgent:
         next_states2 = torch.from_numpy(np.array(next_states2)).float().to(self.device)
 
         # Get the q values for all actions from local network
-        q_predicted_all, _ = self.local_network.forward(x1 = states1, x2 = states2, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
+        q_predicted_all = self.local_network.forward(x1 = states2, batch_size = batch_size, time_step = time_step)
         #Get the q value corresponding to the action executed
         q_predicted = q_predicted_all.gather(dim = 1, index = actions[:, time_step - 1].unsqueeze(dim = 1)).squeeze(dim = 1)
         # Get q values for all the actions of next state
-        q_next_predicted_all, _ = self.local_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
+        q_next_predicted_all = self.local_network.forward(x1 = next_states2, batch_size = batch_size, time_step = time_step)
         
         # get q values for the actions of next state from target netwrok
-        q_next_target_all, _ = self.target_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size, time_step = time_step, hidden_state = hidden_batch, cell_state = cell_batch)
+        q_next_target_all = self.target_network.forward(x1 = next_states2, batch_size = batch_size, time_step = time_step)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation
@@ -129,14 +129,15 @@ class DDQNCNNLSTMAgent:
             self.target_network.load_state_dict(self.local_network.state_dict())
 
 
-    def pick_action(self, state, batch_size, time_step, hidden_state, cell_state, epsilon, learning = True):
-        state_tensor1 = torch.from_numpy(state[0]).float().unsqueeze(0).to(self.device)
-        state_tensor2 = torch.from_numpy(state[1]).float().unsqueeze(0).to(self.device)
+    def pick_action(self, state, batch_size, time_step, epsilon, learning = True):
+        # state_tensor1 = torch.from_numpy(state[0]).float().unsqueeze(0).to(self.device)
+        # state_tensor2 = torch.from_numpy(state[1]).float().unsqueeze(0).to(self.device)
+        state_tensor = torch.from_numpy(np.array(state)).float().to(self.device)
 
         # Query the network
-        model_output = self.local_network.forward(x1 = state_tensor1, x2 = state_tensor2, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state)
-        hidden_state = model_output[1][0]
-        cell_state = model_output[1][1]
+        model_output = self.local_network.forward(x1 = state_tensor, batch_size = batch_size, time_step = time_step)
+        # hidden_state = model_output[1][0]
+        # cell_state = model_output[1][1]
 
         #if np.random.uniform() > epsilon:
         if random.random() > epsilon:
@@ -146,9 +147,10 @@ class DDQNCNNLSTMAgent:
         else:
             #action = np.random.randint(0, 4)
             #action = random.randrange(3)
-            if learning is False:
-                action = np.random.choice(np.arange(0, 4), p = [0.7, 0.1, 0.1, 0.1])                
-            else:
-                action = np.random.randint(0, 4)
+            # if learning is False:
+            #     action = np.random.choice(np.arange(0, 4), p = [0.7, 0.1, 0.1, 0.1])                
+            # else:
+            action = np.random.randint(0, 4)
 
-        return action, hidden_state, cell_state, model_output[0].squeeze(0)
+        #return action, hidden_state, cell_state, model_output[0].squeeze(0)
+        return action, model_output[0].squeeze(0)

@@ -59,6 +59,7 @@ class NeuralNetwork(nn.Module):
         output = self.fc1(output)
         output = self.relu(output)
         output = self.fc2(output)
+        print(output.size())
 
         return output, (h_n, c_n)
 

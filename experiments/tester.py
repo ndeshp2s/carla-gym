@@ -5,7 +5,9 @@ import torch
 from experiments.config import Config
 from agents.tools.misc import get_speed
 
-DEBUG = 0
+from collections import deque
+
+DEBUG = 1
 class Tester:
     def __init__(self, env, agent, spawner, config: Config):
         self.env = env
@@ -26,14 +28,19 @@ class Tester:
             state = self.env.reset()
             self.spawner.reset()
 
-            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
+            # Create stack of states
+            state_queue = deque(maxlen = self.config.hyperparameters["sequence_length"])
+            for i in range(self.config.hyperparameters["sequence_length"]):
+                state_queue.append(state[1])
+            state_list = list(state_queue)
 
-            input('Enter to continue: ')
+            
+            #input('Enter to continue: ')
 
             for step_num in range(self.config.steps_per_episode*5):
                 # Select action
-                action, hidden_state, cell_state, model_output = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, \
-                                                                                                        hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
+                action, q_values = self.agent.pick_action(state = state_list, batch_size = 1, time_step = self.config.hyperparameters["sequence_length"], epsilon = epsilon)
+
 
                 if DEBUG:
                     input('Enter to continue: ')
@@ -41,13 +48,16 @@ class Tester:
 
                 # Execute action for 10 times
                 ev_speed = self.env.get_ego_speed()
-                next_state, reward, done, info = self.env.step(action, model_output = model_output, speed = ev_speed)
+                next_state, reward, done, info = self.env.step(action, model_output = q_values, speed = ev_speed)
                 # for i in range(3):
                 #     next_state, reward, done, info = self.env.step(action)
                 print(action, self.env.get_ego_speed(), reward, self.env.planner.local_planner.get_target_speed())
                 # Update parameters
                 state = next_state
                 episode_reward += reward
+                
+                state_queue.append(state[1])
+                state_list = list(state_queue)
 
                 # Execute spwner step
                 if self.config.spawner:

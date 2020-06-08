@@ -107,8 +107,11 @@ class UrbanEnv(CarlaGym):
         ev_head = (ev_trans.rotation.yaw + 360) % 360
         ev_head = round(ev_head, 2)
         ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
-        ev_head_norm =round(ev_head_norm, 2)
-        tensor2[1] = ev_head_norm
+        ev_head_norm = round(ev_head_norm, 2)
+        #tensor2[1] = ev_head_norm
+        tensor2[1] = self.normalize_data(action, 0.0, 3.0)
+        tensor2[1] = round(tensor2[1], 2)
+
         
 
         # Fill pedestrian information

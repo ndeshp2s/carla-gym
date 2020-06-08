@@ -1,5 +1,6 @@
 import os
 import math
+from collections import deque
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -56,13 +57,17 @@ class Trainer:
             # else:
             #     self.config.spawner = False
 
+            # Create stack of states
+            state_queue = deque(maxlen = self.config.hyperparameters["sequence_length"])
+            for i in range(self.config.hyperparameters["sequence_length"]):
+                state_queue.append(state[1])
+            state_list = list(state_queue)
+
 
             if self.config.spawner:
                 self.spawner.reset()
 
             local_memory = []
-
-            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
 
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
@@ -81,7 +86,7 @@ class Trainer:
 
 
                 # Select action
-                action, hidden_state, cell_state, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon, learning = self.start_learning)
+                action, q_values = self.agent.pick_action(state = state_list, batch_size = 1, time_step = self.config.hyperparameters["sequence_length"], epsilon = epsilon, learning = self.start_learning)
                 if DEBUG:
                     action = input('Enter to continue: ')
                     action = int(action)
@@ -103,6 +108,8 @@ class Trainer:
                 if self.start_learning: 
                     total_steps += 1
                 episode_steps += 1
+                state_queue.append(state[1])
+                state_list = list(state_queue)
 
                 # Execute spwner step
                 if self.config.spawner:

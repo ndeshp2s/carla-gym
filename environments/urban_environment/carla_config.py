@@ -14,7 +14,7 @@ ev_goal_z = 0.2
 ev_goal_yaw = 180.0
 
 # Sensors
-rgb_sensor = True
+rgb_sensor = False
 rgb_size_x = '1920'
 rgb_size_y = '1080'
 rgb_fov = '110'
@@ -25,10 +25,10 @@ rgb_loc_z = 4.0#2.0
 sem_sensor = False
 
 # Display related
-display = True
+display = False
 
 # Rendering related
-render = True
+render = False
 screen_x = 720
 screen_y = 720
 
