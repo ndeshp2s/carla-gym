@@ -109,8 +109,8 @@ class UrbanEnv(CarlaGym):
         ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
         ev_head_norm = round(ev_head_norm, 2)
         #tensor2[1] = ev_head_norm
-        tensor2[1] = self.normalize_data(action, 0.0, 3.0)
-        tensor2[1] = round(tensor2[1], 2)
+        action_norm = self.normalize_data(action, 0.0, 3.0)
+        tensor2[1] = round(action_norm, 2)
 
         
 

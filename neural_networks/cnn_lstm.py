@@ -5,19 +5,19 @@ from experiments.config import Config
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 256):
+    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 128):
         super(NeuralNetwork, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.lstm_memory = lstm_memory
 
-        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 4)
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2)
-        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1)
+        # self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 4)
+        # self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2)
+        # self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1)
 
-        self.lstm_layer = nn.LSTM(input_size = 256, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
+        self.lstm_layer = nn.LSTM(input_size = 2, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = self.lstm_memory + 2, out_features = 32)
+        self.fc1 = nn.Linear(in_features = self.lstm_memory, out_features = 32)
 
         self.fc2 = nn.Linear(in_features = 32, out_features = self.output_size)
         
@@ -28,38 +28,48 @@ class NeuralNetwork(nn.Module):
 
     def forward(self, x1, x2, batch_size, time_step, hidden_state, cell_state):
         # (N, C, H, W) batch size, input channel, input height, input width
-        x1 = x1.view(batch_size*time_step, self.input_size[2], self.input_size[0], self.input_size[1])
+        # x1 = x1.view(batch_size*time_step, self.input_size[2], self.input_size[0], self.input_size[1])
 
-        x1 = self.conv1(x1)
-        x1 = self.relu(x1)
-        #print(x1.size())
+        # x1 = self.conv1(x1)
+        # x1 = self.relu(x1)
+        # #print(x1.size())
 
-        x1 = self.conv2(x1)
-        x1 = self.relu(x1)
-        #print(x1.size())
+        # x1 = self.conv2(x1)
+        # x1 = self.relu(x1)
+        # #print(x1.size())
 
-        x1 = self.conv3(x1)
-        x1 = self.relu(x1)
-        #print(x1.size())
+        # x1 = self.conv3(x1)
+        # x1 = self.relu(x1)
+        # #print(x1.size())
 
-        n_features = np.prod(x1.size()[1:])
-        #print(n_features)
+        # n_features = np.prod(x1.size()[1:])
+        # #print(n_features)
 
-        x1 = x1.view(batch_size, time_step, n_features)
+        # x1 = x1.view(batch_size, time_step, n_features)
 
-        lstm_out = self.lstm_layer(x1, (hidden_state, cell_state))
+        # lstm_out = self.lstm_layer(x1, (hidden_state, cell_state))
+        # output1 = lstm_out[0][:, time_step - 1, :]
+        # h_n = lstm_out[1][0]
+        # c_n = lstm_out[1][1]
+        # x2 = x2.view(batch_size, time_step, 2)
+        # output2 = x2[:, time_step - 1, :]
+
+        # output = torch.cat((output2, output1), dim = 1)
+
+        # output = self.fc1(output)
+        # output = self.relu(output)
+        # output = self.fc2(output)
+        # print(output.size())
+
+        x2 = x2.view(batch_size, time_step, 2)
+
+        lstm_out = self.lstm_layer(x2, (hidden_state, cell_state))
         output1 = lstm_out[0][:, time_step - 1, :]
         h_n = lstm_out[1][0]
         c_n = lstm_out[1][1]
-        x2 = x2.view(batch_size, time_step, 2)
-        output2 = x2[:, time_step - 1, :]
 
-        output = torch.cat((output2, output1), dim = 1)
-
-        output = self.fc1(output)
-        output = self.relu(output)
+        output = self.fc1(output1)
         output = self.fc2(output)
-        print(output.size())
 
         return output, (h_n, c_n)
 
