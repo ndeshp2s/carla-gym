@@ -5,7 +5,7 @@ from experiments.config import Config
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 128):
+    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 256):
         super(NeuralNetwork, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
@@ -17,9 +17,9 @@ class NeuralNetwork(nn.Module):
 
         self.lstm_layer = nn.LSTM(input_size = 2, hidden_size = self.lstm_memory, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = self.lstm_memory, out_features = 32)
+        self.fc1 = nn.Linear(in_features = self.lstm_memory, out_features = self.output_size)
 
-        self.fc2 = nn.Linear(in_features = 32, out_features = self.output_size)
+        #self.fc2 = nn.Linear(in_features = 32, out_features = self.output_size)
         
         self.relu = nn.ReLU()
 
@@ -69,7 +69,8 @@ class NeuralNetwork(nn.Module):
         c_n = lstm_out[1][1]
 
         output = self.fc1(output1)
-        output = self.fc2(output)
+        #output = self.relu(output)
+        #output = self.fc2(output)
 
         return output, (h_n, c_n)
 

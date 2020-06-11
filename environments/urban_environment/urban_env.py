@@ -79,9 +79,11 @@ class UrbanEnv(CarlaGym):
 
         self.tick()
 
-        state = self._get_observation(action)
+        
 
         reward, done, info = self._get_reward()
+
+        state = self._get_observation(action = reward)
 
         if self.render and self.is_render_enabled: 
             if self.rgb_image is not None:
@@ -110,7 +112,8 @@ class UrbanEnv(CarlaGym):
         ev_head_norm = round(ev_head_norm, 2)
         #tensor2[1] = ev_head_norm
         action_norm = self.normalize_data(action, 0.0, 3.0)
-        tensor2[1] = round(action_norm, 2)
+        #tensor2[1] = round(action_norm, 2)
+        tensor2[1] = action
 
         
 
@@ -208,7 +211,8 @@ class UrbanEnv(CarlaGym):
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
         # elif ev_speed > self.max_allowed_speed:
-        #     d_reward = -1.0
+        # #     d_reward = -1.0
+        #     d_reward = ((self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed) - 1.0
 
         elif ev_speed <= 2.0:
             d_reward = -1.0
@@ -286,14 +290,14 @@ class UrbanEnv(CarlaGym):
         
 
         if action == 0:
-            if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 2) or self.planner.local_planner.get_target_speed() < 10.0: 
-                self.planner.local_planner.set_speed(1.0)
+            #if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 2) or self.planner.local_planner.get_target_speed() < 10.0: 
+            self.planner.local_planner.set_speed(1.0)
             control = self.planner.run_step()
             self.ego_vehicle.apply_control(control)
 
         elif action == 1:
-            if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 2):
-                self.planner.local_planner.set_speed(-1.0)
+            #if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 2):
+            self.planner.local_planner.set_speed(-1.0)
             control = self.planner.run_step()
             self.ego_vehicle.apply_control(control)
 
@@ -454,7 +458,7 @@ class UrbanEnv(CarlaGym):
 
         self.initialize_ego_vehicle()
 
-        self.apply_settings(fps = 10.0, no_rendering = not carla_config.render)
+        self.apply_settings(fps = 1.0, no_rendering = not carla_config.render)
 
         self.world.get_map().generate_waypoints(1.0)
 
