@@ -38,7 +38,7 @@ class DDQNCNNLSTMAgent:
         self.memory.add_episode(episode)
 
 
-    def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = False):
+    def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = True):
 
 
         hidden_batch, cell_batch = self.local_network.init_hidden_states(batch_size = batch_size)
@@ -129,7 +129,7 @@ class DDQNCNNLSTMAgent:
             self.target_network.load_state_dict(self.local_network.state_dict())
 
 
-    def pick_action(self, state, batch_size, time_step, hidden_state, cell_state, epsilon, steps = 0):
+    def pick_action(self, state, batch_size, time_step, hidden_state, cell_state, epsilon, steps = 0, learning = True):
         state_tensor1 = torch.from_numpy(state[0]).float().unsqueeze(0).to(self.device)
         state_tensor2 = torch.from_numpy(state[1]).float().unsqueeze(0).to(self.device)
 
@@ -147,7 +147,7 @@ class DDQNCNNLSTMAgent:
             #action = np.random.randint(0, 4)
             #action = random.randrange(3)
             # if learning is False:
-            #     action = np.random.choice(np.arange(0, 4), p = [0.7, 0.1, 0.1, 0.1])                
+            #     action = np.random.choice(np.arange(0, 4), p = [0.5, 0.0, 0.0, 0.5])                
             # else:
             action = np.random.randint(0, 4)
 

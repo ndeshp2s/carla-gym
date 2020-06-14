@@ -35,11 +35,11 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.001,
+        "learning_rate": 0.0025,
         "batch_size": 32,
         "sequence_length": 10,
-        "buffer_size": 50,
-        "update_every_n_steps": 1000,
+        "buffer_size": 200,
+        "update_every_n_steps": 10000,
         "min_steps_before_learning": 1,
         "epsilon_start": 1,
         "epsilon_end": 0.1,

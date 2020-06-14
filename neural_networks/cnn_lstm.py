@@ -5,7 +5,7 @@ from experiments.config import Config
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 256):
+    def __init__(self, input_size = 0, output_size = 0, device = "cpu", lstm_memory = 128):
         super(NeuralNetwork, self).__init__()
         self.input_size = input_size
         self.output_size = output_size

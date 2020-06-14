@@ -83,7 +83,7 @@ class Trainer:
 
 
                 # Select action
-                action, hidden_state, cell_state, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon)
+                action, hidden_state, cell_state, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon, learning = self.start_learning)
                 
                 if DEBUG:
                     action = input('Enter to continue: ')
