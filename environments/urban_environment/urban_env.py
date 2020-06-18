@@ -93,7 +93,7 @@ class UrbanEnv(CarlaGym):
 
     def _get_observation(self, action = 0):
         tensor1 = np.zeros([self.state_y, self.state_x, self.channel])
-        tensor2 = np.zeros([2])
+        tensor2 = np.zeros([3])
 
         # Fill ego vehicle information
         ev_trans = self.ego_vehicle.get_transform()
@@ -107,8 +107,12 @@ class UrbanEnv(CarlaGym):
         ev_head = (ev_trans.rotation.yaw + 360) % 360
         ev_head = round(ev_head, 2)
         ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
-        ev_head_norm =round(ev_head_norm, 2)
+        ev_head_norm = round(ev_head_norm, 2)
         tensor2[1] = ev_head_norm
+
+        action_norm = self.normalize_data(action, 0.0, 3.0)
+        tensor2[2] = action_norm
+
         
 
         # Fill pedestrian information
@@ -201,14 +205,14 @@ class UrbanEnv(CarlaGym):
             ev_speed = 0.0
         ev_speed = round(ev_speed, 2)
 
-        if ev_speed > 2.0:# and ev_speed <= self.max_allowed_speed:
+        if ev_speed > 2.0 and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
 
-        # elif ev_speed > self.max_allowed_speed:
-        #     d_reward = -1.0
+        elif ev_speed > self.max_allowed_speed:
+            d_reward = -10.0
 
         elif ev_speed <= 2.0:
-            d_reward = -1.0
+            d_reward = -10.0
 
 
         # Reward/Penalty for near-collision, collision
@@ -218,7 +222,7 @@ class UrbanEnv(CarlaGym):
 
         if collision:
             if ev_speed > 0.0:
-                c_reward = -10
+                c_reward = -40
                 info = 'Collision'
             else:
                 info = 'Ped-Collision'
@@ -227,10 +231,12 @@ class UrbanEnv(CarlaGym):
             
 
         elif near_collision:
-            if (1.0 < ttc <= 2.0):
-                nc_reward = -1.0
-            elif ttc <= 1.0:
-                nc_reward = -2.0
+            # if (1.0 < ttc <= 2.0):
+            #     nc_reward = -1.0
+            # elif ttc <= 1.0:
+            #     nc_reward = -2.0
+
+            nc_reward = (-1)*(3.0 - ttc)
 
 
         # Check if goal reached
@@ -271,7 +277,7 @@ class UrbanEnv(CarlaGym):
         #     total_reward = nc_reward + c_reward
 
         # else:
-        total_reward = d_reward + nc_reward + c_reward
+        total_reward = 10*d_reward + nc_reward + c_reward
 
         total_reward = round(total_reward, 2)
 

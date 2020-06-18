@@ -27,7 +27,7 @@ from experiments.tester import Tester
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test19'
+    experiment_dir = 'experiments/dqn_lstm/test28'
 
     # Load configuration
     config = Config()
@@ -37,7 +37,7 @@ def main(args):
     config.hyperparameters = {
         "learning_rate": 0.001,
         "batch_size": 32,
-        "sequence_length": 8,
+        "sequence_length": 10,
         "buffer_size": 50,
         "update_every_n_steps": 10000,
         "min_steps_before_learning": 1,
@@ -51,8 +51,8 @@ def main(args):
     
     config.use_cuda = False
 
-    config.number_of_episodes = 200
-    config.steps_per_episode = 300
+    config.number_of_episodes = 300
+    config.steps_per_episode = 500
     config.previous_episode = 0
     config.total_steps = 50000
     config.pre_train_steps = 1

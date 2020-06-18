@@ -66,13 +66,20 @@ class Spawner(object):
 
 
 
-    def run_step(self, ev_trans = None, step_num = 0):
+    def run_step(self, ev_trans = None, step_num = 0, crossing = True):
+        
+        if crossing is True:
+            self.set_factors(crossing = carla_config.percentage_pedestrians_crossing, illegal_crossing = carla_config.percentage_pedestrians_crossing_illegal)
+
+        else:
+            self.set_factors(crossing = 0.0, illegal_crossing = 0.0)
+
 
         ev_trans = self.get_ev_trans()
 
         spawn_points = self.get_spawn_points(ev_trans)
         
-        self.controller_turnon(spawn_points)
+        self.controller_turnon(spawn_points, crossing = crossing)
 
         self.spawn_pedestrian(spawn_points, ev_trans)
 
@@ -125,7 +132,7 @@ class Spawner(object):
             counter = counter + 1
 
 
-    def controller_turnon(self, goal_points):
+    def controller_turnon(self, goal_points, crossing = True):
         #print('controller_turnon')
         controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
 
@@ -134,7 +141,7 @@ class Spawner(object):
                 ped = self.world.get_actor(p["id"])
                 controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to = ped)
                 controller.start()
-                goal = self.get_goal(goal_points, p["start"])
+                goal = self.get_goal(goal_points, p["start"], crossing = crossing)
                 goal.location.z = 0.2
                 controller.go_to_location(goal.location)
                 #controller.go_to_location(self.world.get_random_location_from_navigation())
@@ -245,7 +252,7 @@ class Spawner(object):
         return spawn_points
 
 
-    def get_goal(self, goal_points, start):
+    def get_goal(self, goal_points, start, crossing = True):
         #print('get_goal')
         for goal in goal_points:
             goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
@@ -253,8 +260,12 @@ class Spawner(object):
              
 
             if goal_wp is not None and start_wp is not None:
-                if (goal_wp.lane_id ^ start_wp.lane_id) < 0 and goal_wp.road_id == start_wp.road_id and self.distance(goal, start) < 15.0:
-                    return goal_wp.transform
+                if crossing is True:
+                    if (goal_wp.lane_id ^ start_wp.lane_id) < 0 and goal_wp.road_id == start_wp.road_id and self.distance(goal, start) < 15.0:
+                        return goal_wp.transform
+                else:
+                    if goal_wp.lane_id == start_wp.lane_id and goal_wp.road_id == start_wp.road_id:
+                        return goal_wp.transform
             
         goal = random.choice(walker_goal_points)
         goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)

@@ -62,7 +62,8 @@ class Trainer:
 
             local_memory = []
 
-            hidden_state, cell_state = self.agent.local_network.init_hidden_states(batch_size = 1)
+            hidden_state1, cell_state1 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 256)
+            hidden_state2, cell_state2 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 128)
 
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
@@ -81,7 +82,7 @@ class Trainer:
 
 
                 # Select action
-                action, hidden_state, cell_state, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state = hidden_state, cell_state = cell_state, epsilon = epsilon, learning = self.start_learning)
+                action, hidden_state1, cell_state1, hidden_state2, cell_state2, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state1 = hidden_state1, cell_state1 = cell_state1, hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon, learning = self.start_learning)
                 if DEBUG:
                     action = input('Enter to continue: ')
                     action = int(action)
@@ -106,7 +107,10 @@ class Trainer:
 
                 # Execute spwner step
                 if self.config.spawner:
-                    self.spawner.run_step()
+                    if ep_num%2 == 0:
+                        self.spawner.run_step(crossing = True)
+                    else:
+                        self.spawner.run_step(crossing = False)
 
 
                 # Performing learning if minumum required experiences gathered
