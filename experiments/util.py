@@ -132,12 +132,12 @@ class DataVisualization():
         #                     [0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3]])
 
 
-        x = np.arange(1,21)
+        x = np.arange(1,31)
         y = np.arange(1,31)
         x_label = np.char.mod('%d', x)
         y_label = np.char.mod('%d', y)
 
-        data = np.tile(np.array([[1,0],[0,1]]), (15, 10))  #np.resize([1, -1], (30, 30))#np.zeros((30, 30))
+        data = np.tile(np.array([[1,0],[0,1]]), (16, 16))  #np.resize([1, -1], (30, 30))#np.zeros((30, 30))
         #data = [0, 1] * data
 
         for x in range(tensor.shape[0]):
@@ -161,8 +161,8 @@ class DataVisualization():
         #ax.grid(axis='both', linestyle='-', color='k', linewidth=1)
         ax.set_xticklabels(x_label)
         ax.set_yticklabels(y_label)
-        ax.set_xticks(np.arange(20))
-        ax.set_yticks(np.arange(30))
+        ax.set_xticks(np.arange(32))
+        ax.set_yticks(np.arange(32))
         ax.invert_yaxis()
         # ... and label them with the respective list entries
 

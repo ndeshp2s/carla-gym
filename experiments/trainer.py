@@ -82,7 +82,7 @@ class Trainer:
 
 
                 # Select action
-                action, hidden_state1, cell_state1, hidden_state2, cell_state2, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state1 = hidden_state1, cell_state1 = cell_state1, hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon, learning = self.start_learning)
+                action, hidden_state1, cell_state1, hidden_state2, cell_state2, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state1 = hidden_state1, cell_state1 = cell_state1, hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon, learning = True)
                 if DEBUG:
                     action = input('Enter to continue: ')
                     action = int(action)
@@ -110,7 +110,7 @@ class Trainer:
                     if ep_num%2 == 0:
                         self.spawner.run_step(crossing = True)
                     else:
-                        self.spawner.run_step(crossing = False)
+                        self.spawner.run_step(crossing = True)
 
 
                 # Performing learning if minumum required experiences gathered
@@ -199,9 +199,9 @@ class Trainer:
         self.agent.local_network.load_state_dict(checkpoint['state_dict'])
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.previous_episode = checkpoint['episode']
-        self.config.hyperparameters["epsilon_start"] = checkpoint['epsilon']
-        self.config.hyperparameters["epsilon_before_learning"] = checkpoint['epsilon']
+        self.previous_episode = 0#checkpoint['episode']
+        self.config.hyperparameters["epsilon_start"] = 0.5#checkpoint['epsilon']
+        self.config.hyperparameters["epsilon_before_learning"] = 0.5#checkpoint['epsilon']
         self.steps = checkpoint['total_steps']
 
         self.agent.local_network.train()

@@ -207,12 +207,13 @@ class UrbanEnv(CarlaGym):
 
         if ev_speed > 2.0 and ev_speed <= self.max_allowed_speed:
             d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
+            d_reward = d_reward
 
         elif ev_speed > self.max_allowed_speed:
-            d_reward = -10.0
+            d_reward = -1.0
 
         elif ev_speed <= 2.0:
-            d_reward = -10.0
+            d_reward = -1.0
 
 
         # Reward/Penalty for near-collision, collision
@@ -222,7 +223,7 @@ class UrbanEnv(CarlaGym):
 
         if collision:
             if ev_speed > 0.0:
-                c_reward = -40
+                c_reward = -10
                 info = 'Collision'
             else:
                 info = 'Ped-Collision'
@@ -236,7 +237,7 @@ class UrbanEnv(CarlaGym):
             # elif ttc <= 1.0:
             #     nc_reward = -2.0
 
-            nc_reward = (-1)*(3.0 - ttc)
+            nc_reward = ttc - 3.0
 
 
         # Check if goal reached
@@ -277,9 +278,12 @@ class UrbanEnv(CarlaGym):
         #     total_reward = nc_reward + c_reward
 
         # else:
-        total_reward = 10*d_reward + nc_reward + c_reward
+
+        total_reward = d_reward + c_reward
 
         total_reward = round(total_reward, 2)
+
+        #print('Rewards: ', d_reward, nc_reward, c_reward, total_reward)
 
         return total_reward, done, info
 
@@ -611,7 +615,9 @@ class UrbanEnv(CarlaGym):
         ev_speed_y = round(ev_speed_y, 2)
 
         dt = 0.0
-        ttc = 0.0
+        ttc = 10.0
+        near_collision = False
+        collision = False
 
         while dt < 3.0:
             dt = dt + 0.1
@@ -654,19 +660,31 @@ class UrbanEnv(CarlaGym):
                 ped_new_position_y = round(ped_new_position_y, 2)
 
                 ped_point_ttc = Point(ped_new_position_x, ped_new_position_y).buffer(1.0)
-                ped_point_collision = Point(ped_trans.location.x, ped_trans.location.y).buffer(0.25)
+                ped_point_collision = Point(ped_trans.location.x, ped_trans.location.y).buffer(0.5)
+
+                self.world.debug.draw_string(carla.Location(x = ped_new_position_x, y = ped_new_position_y, z = 0.1), 'O', draw_shadow=False, 
+                color=carla.Color(r=255, g=0, b=0), life_time=1.0, persistent_lines=True)
 
 
                 # Check for collision
                 if ev_polygon.intersects(ped_point_collision):
-                    return 0, False, True
+                    collision = True
+                    return 0, near_collision, collision
 
                 if ev_polygon_next.intersects(ped_point_ttc) == True:
-                    ttc = dt
+                    if ttc > dt:
+                        ttc = dt
+                        near_collision = True
 
-                    return ttc, True, False
 
-        return 0, False, False
+                    #return ttc, True, False
+        if near_collision:
+            return ttc, near_collision, collision
+
+        else:
+            return 0, False, False
+
+
 
     def is_collision(self, entity_list):
 

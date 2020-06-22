@@ -4,6 +4,7 @@ import torch
 
 from experiments.config import Config
 from agents.tools.misc import get_speed
+from experiments.util import EpsilonTracker, DataVisualization
 
 DEBUG = 0
 class Tester:
@@ -21,6 +22,7 @@ class Tester:
 
         epsilon = 0
 
+
         for i in range(0, 10):
 
             state = self.env.reset()
@@ -30,8 +32,10 @@ class Tester:
             hidden_state2, cell_state2 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 128)
 
             input('Enter to continue: ')
+            #data_vis = DataVisualization(x_min = 0, x_max = 32, y_min = -16, y_max = 16)
 
             for step_num in range(self.config.steps_per_episode*5):
+                #data_vis.display(state[0])
                 # Select action
                 action, hidden_state1, cell_state1, hidden_state2, cell_state2, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state1 = hidden_state1, cell_state1 = cell_state1, hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon)
 
@@ -51,7 +55,8 @@ class Tester:
 
                 # Execute spwner step
                 if self.config.spawner:
-                    self.spawner.run_step(crossing = False)
+                    self.spawner.run_step(crossing = True)
+
 
                 # if (130 > step_num > 100) or (230 > step_num > 200):
                 #     self.spawner.set_factors(0.0, 0.0)

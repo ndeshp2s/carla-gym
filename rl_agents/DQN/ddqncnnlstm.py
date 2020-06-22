@@ -149,9 +149,9 @@ class DDQNCNNLSTMAgent:
         else:
             #action = np.random.randint(0, 4)
             #action = random.randrange(3)
-            if learning is False:
-                action = np.random.choice(np.arange(0, 4), p = [0.5, 0.25, 0.0, 0.25])                
-            else:
-                action = np.random.randint(0, 4)
+            # if learning is False:
+            #     action = np.random.choice(np.arange(0, 4), p = [0.5, 0.25, 0.0, 0.25])                
+            # else:
+            action = np.random.randint(0, 4)
 
         return action, hidden_state1, cell_state1, hidden_state2, cell_state2, model_output[0].squeeze(0)
