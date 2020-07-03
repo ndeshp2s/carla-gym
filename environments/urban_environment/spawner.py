@@ -146,7 +146,7 @@ class Spawner(object):
                 controller.go_to_location(goal.location)
                 #controller.go_to_location(self.world.get_random_location_from_navigation())
 
-                controller.set_max_speed(round(random.uniform(2.0, carla_config.ped_max_speed), 2))
+                controller.set_max_speed(round(random.uniform(0.75, 2.0), 2))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id
@@ -315,11 +315,11 @@ def main():
 
     destroy(world)
 
-    world.set_pedestrians_cross_factor(0.0)
+    world.set_pedestrians_cross_factor(0.70)
     world.set_pedestrians_cross_illegal_factor(0.0)
 
     # Spawn ego vehicle
-    sp = carla.Transform(carla.Location(x = 28.4, y = -0.40, z = 0.1), carla.Rotation(yaw = 180))
+    sp = carla.Transform(carla.Location(x = 34.4, y = -1.7, z = 0.1), carla.Rotation(yaw = 180))
     bp = random.choice(world.get_blueprint_library().filter('vehicle.audi.etron'))
     bp.set_attribute('role_name', 'hero')
 
@@ -332,7 +332,7 @@ def main():
     try:
         while True:
 
-            find_ttc(veh.get_transform())
+            #find_ttc(veh.get_transform())
 
             spawner.run_step(ev_trans = veh.get_transform())
 

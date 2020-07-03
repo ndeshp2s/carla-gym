@@ -132,12 +132,12 @@ class DataVisualization():
         #                     [0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3]])
 
 
-        x = np.arange(1,31)
+        x = np.arange(1,45)
         y = np.arange(1,31)
         x_label = np.char.mod('%d', x)
         y_label = np.char.mod('%d', y)
 
-        data = np.tile(np.array([[1,0],[0,1]]), (16, 16))  #np.resize([1, -1], (30, 30))#np.zeros((30, 30))
+        data = np.tile(np.array([[1,0],[0,1]]), (23, 16))  #np.resize([1, -1], (30, 30))#np.zeros((30, 30))
         #data = [0, 1] * data
 
         for x in range(tensor.shape[0]):

@@ -11,17 +11,21 @@ class NeuralNetwork(nn.Module):
         self.output_size = output_size
         self.lstm_memory = lstm_memory
 
-        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 4, stride = 4)
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2)
+        self.conv1 = nn.Conv2d(in_channels = input_size[2], out_channels = 32, kernel_size = 8, stride = 4)
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 4, stride = 2)
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1)
 
-        self.lstm_layer1 = nn.LSTM(input_size = 256, hidden_size = 256, num_layers = 1, batch_first = True)
+        # self.max_pool1 = nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # self.max_pool2 = nn.MaxPool2d(kernel_size = 2, stride = 2)
+        # self.max_pool3 = nn.MaxPool2d(kernel_size = 2, stride = 2)
+
+        self.lstm_layer1 = nn.LSTM(input_size = 192, hidden_size = 512, num_layers = 1, batch_first = True)
 
         self.lstm_layer2 = nn.LSTM(input_size = 3, hidden_size = 128, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = 384, out_features = self.output_size)
+        self.fc1 = nn.Linear(in_features = 640, out_features = 128)
 
-        #self.fc2 = nn.Linear(in_features = 32, out_features = self.output_size)
+        self.fc2 = nn.Linear(in_features = 128, out_features = self.output_size)
         
         self.relu = nn.ReLU()
 
@@ -34,14 +38,17 @@ class NeuralNetwork(nn.Module):
 
         x1 = self.conv1(x1)
         x1 = self.relu(x1)
+        #x1 = self.max_pool1(x1)
         #print(x1.size())
 
         x1 = self.conv2(x1)
         x1 = self.relu(x1)
+        #x1 = self.max_pool2(x1)
         #print(x1.size())
 
         x1 = self.conv3(x1)
         x1 = self.relu(x1)
+        #x1 = self.max_pool3(x1)
         #print(x1.size())
 
         n_features = np.prod(x1.size()[1:])
@@ -63,8 +70,8 @@ class NeuralNetwork(nn.Module):
         output = torch.cat((output2, output1), dim = 1)
 
         output = self.fc1(output)
-        #output = self.relu(output)
-        #output = self.fc2(output)
+        output = self.relu(output)
+        output = self.fc2(output)
 
         return output, (h_n1, c_n1), (h_n2, c_n2)
 
@@ -143,7 +150,7 @@ if DEBUG:
     TIME_STEP = 1
 
     # Dummy data
-    x = np.zeros([32,32,4])
+    x = np.zeros([45,30,4])
     batch = []
     for i in range(TIME_STEP*BATCH_SIZE):
         batch.append(x)
@@ -152,14 +159,15 @@ if DEBUG:
 
 
     model = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=128)
-    hidden_state, cell_state = model.init_hidden_states(batch_size=1)
+    hidden_state1, cell_state1 = model.init_hidden_states(batch_size=1, lstm_memory=256)
+    hidden_state2, cell_state2 = model.init_hidden_states(batch_size=1, lstm_memory=128)
     target = NeuralNetwork(input_size=x.shape, output_size=OUT_SIZE, lstm_memory=128)
     print(model)
 
 
     # Dummy data
     x = []
-    x.append(np.zeros([32,32,4]))
+    x.append(np.zeros([45,30,4]))
     x.append(np.zeros([2]))
 
     batch = []
@@ -199,7 +207,7 @@ if DEBUG:
     rewards = torch.from_numpy(np.array(rewards)).float()
     next_states = torch.from_numpy(np.array(next_states)).float()
 
-    q_predicted_all, _ = model.forward(states1, states2, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state = hidden_state, cell_state = cell_state)
+    q_predicted_all, _ = model.forward(states1, states2, batch_size = BATCH_SIZE, time_step = TIME_STEP, hidden_state1 = hidden_state1, cell_state1 = cell_state1, hidden_state2 = hidden_state2, cell_state2 = cell_state2)
 
     # print(actions[:,TIME_STEP-1].unsqueeze(dim=1))
 

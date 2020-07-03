@@ -23,6 +23,7 @@ class CarlaGym(gym.Env):
         self.server = None
         self.client = None
         self.world = None
+        self.map = None
       
 
     def kill_processes(self):
@@ -97,6 +98,7 @@ class CarlaGym(gym.Env):
         # open client
         self.client = carla.Client('localhost', 2000, 10)
         self.world = self.client.get_world()
+        self.map = self.world.get_map()
         
 
 

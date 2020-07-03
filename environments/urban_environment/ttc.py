@@ -207,8 +207,8 @@ def main():
 
     env.reset(client_only = True)
 
-    env.world.set_pedestrians_cross_factor(0.0)
-    env. world.set_pedestrians_cross_illegal_factor(1.0)
+    env.world.set_pedestrians_cross_factor(7.0)
+    env. world.set_pedestrians_cross_illegal_factor(0.3)
 
     # client = carla.Client('localhost', 2000)
     # client.set_timeout(2.0)

@@ -108,10 +108,10 @@ class UrbanEnv(CarlaGym):
         ev_head = round(ev_head, 2)
         ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
         ev_head_norm = round(ev_head_norm, 2)
-        tensor2[1] = ev_head_norm
+        tensor2[2] = ev_head_norm
 
         action_norm = self.normalize_data(action, 0.0, 3.0)
-        tensor2[2] = action_norm
+        tensor2[1] = action_norm
 
         
 
@@ -160,7 +160,8 @@ class UrbanEnv(CarlaGym):
 
                 # Get pedestrian lane type
                 ped_lane = None
-                waypoint = self.world.get_map().get_waypoint(p_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
+                waypoint = self.map.get_waypoint(p_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
+                #waypoint = self.world.get_map().get_waypoint(p_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
                 if waypoint.lane_type == carla.LaneType.Driving:
                     ped_lane = 1
                 elif waypoint.lane_type == carla.LaneType.Sidewalk or waypoint.lane_type == carla.LaneType.Shoulder:
@@ -199,22 +200,7 @@ class UrbanEnv(CarlaGym):
 
         total_reward = d_reward = nc_reward = c_reward = 0.0
 
-        # Reward for speed 
         ev_speed = get_speed(self.ego_vehicle)
-        if ev_speed < 0.0:
-            ev_speed = 0.0
-        ev_speed = round(ev_speed, 2)
-
-        if ev_speed > 2.0 and ev_speed <= self.max_allowed_speed:
-            d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
-            d_reward = d_reward
-
-        elif ev_speed > self.max_allowed_speed:
-            d_reward = -1.0
-
-        elif ev_speed <= 2.0:
-            d_reward = -1.0
-
 
         # Reward/Penalty for near-collision, collision
         pedestrian_list = self.world.get_actors().filter('walker.pedestrian.*')
@@ -222,7 +208,7 @@ class UrbanEnv(CarlaGym):
         #print(ttc, near_collision, collision)
 
         if collision:
-            if ev_speed > 0.0:
+            if ev_speed >= 0.5:
                 c_reward = -10
                 info = 'Collision'
             else:
@@ -244,6 +230,28 @@ class UrbanEnv(CarlaGym):
         if self.planner.done():
             done = True
             info = 'Goal Reached'
+
+
+
+        # Reward for speed 
+        
+        if ev_speed < 0.0:
+            ev_speed = 0.0
+        ev_speed = round(ev_speed, 2)
+
+        if ev_speed >= 1.0 and ev_speed <= self.max_allowed_speed:
+            d_reward = (self.max_allowed_speed - abs(self.max_allowed_speed - ev_speed))/self.max_allowed_speed
+            d_reward = 1*d_reward
+
+        elif ev_speed > self.max_allowed_speed:
+            d_reward = -0.5
+
+        elif ev_speed <= 1.0:
+            # if nc_reward > 0.0:
+            #     d_reward = -1.0
+            # else:
+            d_reward = -1.0
+
 
         
         # ## Reward(penalty) for collision
@@ -279,7 +287,14 @@ class UrbanEnv(CarlaGym):
 
         # else:
 
-        total_reward = d_reward + c_reward
+        if c_reward == 0.0 and nc_reward == 0.0:
+            total_reward = d_reward
+
+        else:
+            total_reward = c_reward + nc_reward
+
+
+        #total_reward = d_reward + c_reward + nc_reward
 
         total_reward = round(total_reward, 2)
 
@@ -293,19 +308,22 @@ class UrbanEnv(CarlaGym):
         
 
         if action == 0:
-            if (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 2) or self.planner.local_planner.get_target_speed() < 10.0: 
-                self.planner.local_planner.set_speed(1.0)
+            if self.planner.local_planner.get_target_speed() < 5.0:
+                self.planner.local_planner.set_speed(5.0)
+            elif (self.planner.local_planner.get_target_speed() - get_speed(self.ego_vehicle) <= 1):# or self.planner.local_planner.get_target_speed() < 10.0: 
+                self.planner.local_planner.set_speed(1)
+
             control = self.planner.run_step()
             self.ego_vehicle.apply_control(control)
 
         elif action == 1:
-            if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 2):
-                self.planner.local_planner.set_speed(-1.0)
+            if (get_speed(self.ego_vehicle) - self.planner.local_planner.get_target_speed() <= 1):
+                self.planner.local_planner.set_speed(-1)
             control = self.planner.run_step()
             self.ego_vehicle.apply_control(control)
 
         elif action == 2:
-            self.planner.local_planner.set_speed(0)
+            self.planner.local_planner.set_speed(0.0)
             control = self.planner.run_step()
             control.brake = 1.0
             control.throttle = 0.0
@@ -466,10 +484,14 @@ class UrbanEnv(CarlaGym):
         self.world.get_map().generate_waypoints(1.0)
 
         # Run some initial steps
-        for i in range(10):
-            self.step(0)       
+        # for i in range(2):
+        #     self.step(0)       
+        for i in range(20):
+            self.step(0)
         for i in range(10):
             self.step(2)
+
+        #self.step(2)
 
         state = self._get_observation()
 
@@ -641,40 +663,45 @@ class UrbanEnv(CarlaGym):
 
 
             for ped in entity_list:
-                ped_trans = ped.get_transform()
-                ped_heading = (ped_trans.rotation.yaw + 360) % 360
-                ped_heading = round(ped_heading, 2)
-                ped_heading_radians = math.radians(ped_heading)
-                ped_heading_radians = round(ped_heading_radians, 2)
+                #target_waypoint = self.map.get_waypoint(ped.get_location(), project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
 
-                ped_speed = get_speed(ped)
-                ped_speed = round(ped_speed, 2)
-                ped_speed_x = ped_speed*math.cos(ped_heading_radians)
-                ped_speed_y = ped_speed*math.sin(ped_heading_radians)
-                ped_speed_x = round(ped_speed_x, 2)
-                ped_speed_y = round(ped_speed_y, 2)
+                #if target_waypoint.lane_type == carla.LaneType.Driving:
+                                    
+                    ped_trans = ped.get_transform()
+                    ped_heading = (ped_trans.rotation.yaw + 360) % 360
+                    ped_heading = round(ped_heading, 2)
+                    ped_heading_radians = math.radians(ped_heading)
+                    ped_heading_radians = round(ped_heading_radians, 2)
 
-                ped_new_position_x = ped_trans.location.x + ped_speed_x*dt
-                ped_new_position_y = ped_trans.location.y + ped_speed_y*dt
-                ped_new_position_x = round(ped_new_position_x, 2)
-                ped_new_position_y = round(ped_new_position_y, 2)
+                    ped_speed = get_speed(ped)
+                    ped_speed = round(ped_speed, 2)
+                    ped_speed_x = ped_speed*math.cos(ped_heading_radians)
+                    ped_speed_y = ped_speed*math.sin(ped_heading_radians)
+                    ped_speed_x = round(ped_speed_x, 2)
+                    ped_speed_y = round(ped_speed_y, 2)
 
-                ped_point_ttc = Point(ped_new_position_x, ped_new_position_y).buffer(1.0)
-                ped_point_collision = Point(ped_trans.location.x, ped_trans.location.y).buffer(0.5)
+                    ped_new_position_x = ped_trans.location.x + ped_speed_x*dt
+                    ped_new_position_y = ped_trans.location.y + ped_speed_y*dt
+                    ped_new_position_x = round(ped_new_position_x, 2)
+                    ped_new_position_y = round(ped_new_position_y, 2)
 
-                self.world.debug.draw_string(carla.Location(x = ped_new_position_x, y = ped_new_position_y, z = 0.1), 'O', draw_shadow=False, 
-                color=carla.Color(r=255, g=0, b=0), life_time=1.0, persistent_lines=True)
+                    ped_point_ttc = Point(ped_new_position_x, ped_new_position_y).buffer(1.0)
+                    ped_point_collision = Point(ped_trans.location.x, ped_trans.location.y).buffer(1.0)
 
+                    
+                    # Check for collision
+                    if ev_polygon.intersects(ped_point_collision):
+                        collision = True
+                        return 0, near_collision, collision
 
-                # Check for collision
-                if ev_polygon.intersects(ped_point_collision):
-                    collision = True
-                    return 0, near_collision, collision
+                    if ev_polygon_next.intersects(ped_point_ttc) == True:
+                        if ttc > dt:
+                            ttc = dt
+                            near_collision = True
+                            # print('TTC:', ttc)
+                            # self.world.debug.draw_string(carla.Location(x = ped_new_position_x, y = ped_new_position_y, z = 0.1), 'O', draw_shadow=False, 
+                            # color=carla.Color(r=255, g=0, b=0), life_time=1.0, persistent_lines=True)
 
-                if ev_polygon_next.intersects(ped_point_ttc) == True:
-                    if ttc > dt:
-                        ttc = dt
-                        near_collision = True
 
 
                     #return ttc, True, False
@@ -682,7 +709,7 @@ class UrbanEnv(CarlaGym):
             return ttc, near_collision, collision
 
         else:
-            return 0, False, False
+            return 0.0, False, False
 
 
 
