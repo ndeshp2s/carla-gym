@@ -27,7 +27,7 @@ from experiments.tester import Tester
 def main(args):
 
     # Directory of current experiment
-    experiment_dir = 'experiments/dqn_lstm/test91'
+    experiment_dir = 'experiments/dqn_lstm/test94'
 
     # Load configuration
     config = Config()
@@ -35,9 +35,9 @@ def main(args):
     config.env = args.env
 
     config.hyperparameters = {
-        "learning_rate": 0.01,
+        "learning_rate": 0.00025,
         "batch_size": 32,
-        "sequence_length": 4,
+        "sequence_length": 8,
         "buffer_size": 50,
         "update_every_n_steps": 100,
         "min_steps_before_learning": 1,

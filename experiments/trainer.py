@@ -118,8 +118,8 @@ class Trainer:
 
                 # Execute spwner step
                 if self.config.spawner:
-                    if ep_num%2 == 0 and self.start_learning is True:
-                        self.spawner.run_step(crossing = True)
+                    if ep_num%3 == 0 and self.start_learning is True:
+                        self.spawner.run_step(crossing = False)
                     else:
                         self.spawner.run_step(crossing = True)
 

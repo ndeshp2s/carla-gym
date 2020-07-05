@@ -178,7 +178,7 @@ class UrbanEnv(CarlaGym):
 
                 #print(tensor[x_discrete, y_discrete, :])
                 p_relative_heading_norm = self.normalize_data(p_relative_heading, 0.0, 360.0)
-                p_relative_heading_norm = round(p_relative_heading_norm, 2)
+                p_relative_heading_norm = round(p_relative_heading_norm, 3)
                 p_speed_norm = self.normalize_data(p_speed, 0.0, carla_config.ped_max_speed)
                 p_speed_norm = round(p_speed_norm, 2)
 
@@ -287,14 +287,14 @@ class UrbanEnv(CarlaGym):
 
         # else:
 
-        if c_reward == 0.0 and nc_reward == 0.0:
-            total_reward = d_reward
+        # if c_reward == 0.0 and nc_reward == 0.0:
+        #     total_reward = d_reward
 
-        else:
-            total_reward = c_reward + nc_reward
+        # else:
+        #     total_reward = c_reward + nc_reward
 
 
-        #total_reward = d_reward + c_reward + nc_reward
+        total_reward = d_reward + c_reward + nc_reward
 
         total_reward = round(total_reward, 2)
 

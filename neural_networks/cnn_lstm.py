@@ -23,9 +23,9 @@ class NeuralNetwork(nn.Module):
 
         self.lstm_layer2 = nn.LSTM(input_size = 2, hidden_size = 128, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = 640, out_features = self.output_size)
+        self.fc1 = nn.Linear(in_features = 640, out_features = 128)
 
-        #self.fc2 = nn.Linear(in_features = 128, out_features = self.output_size)
+        self.fc2 = nn.Linear(in_features = 128, out_features = self.output_size)
         
         self.relu = nn.ReLU()
 
@@ -70,8 +70,8 @@ class NeuralNetwork(nn.Module):
         output = torch.cat((output2, output1), dim = 1)
 
         output = self.fc1(output)
-        #output = self.relu(output)
-        #output = self.fc2(output)
+        output = self.relu(output)
+        output = self.fc2(output)
 
         return output, (h_n1, c_n1), (h_n2, c_n2)
 

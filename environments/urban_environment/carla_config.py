@@ -14,7 +14,7 @@ ev_goal_z = 0.2
 ev_goal_yaw = 180.0
 
 # Sensors
-rgb_sensor = False
+rgb_sensor = True
 rgb_size_x = '1920'
 rgb_size_y = '1080'
 rgb_fov = '110'
@@ -24,11 +24,11 @@ rgb_loc_z = 4.0#2.0
 
 sem_sensor = False
 
-# Display related
-display = False
+# Display True
+display = True
 
 # Rendering related
-render = False
+render = True
 screen_x = 720
 screen_y = 720
 
@@ -42,17 +42,17 @@ num_of_ped = 3
 HEIGHT = 1
 WIDTH = 4*num_of_ped
 N_CHANNELS = 0
-grid_height = 45
-grid_width = 30
+grid_height = 45#32#45
+grid_width = 30#32#30
 features = 4
 lane_types = 3# Driving(road)-1, sidewalk(shoulder)-2, crosswalk-3 
 
 x_min = 0
-x_max = 45
-x_size = 45
-y_min = -15
-y_max = 15
-y_size = 30
+x_max = 45#32#45
+x_size = 45#32#45
+y_min = -15#-16#15
+y_max = 15#16#15
+y_size = 30#32#30
 
 # Pedestrian behavior probalities
 # Four types of behaviors:
@@ -67,8 +67,8 @@ ped_max_speed = 3.0
 # Spawner related
 num_of_ped = 8
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.8
-percentage_pedestrians_crossing_illegal = 0.1
+percentage_pedestrians_crossing = 0.7
+percentage_pedestrians_crossing_illegal = 0.2
 ped_spawn_min_dist = 8.0
 ped_spawn_max_dist = 30.0
 ped_max_dist = 35.0
