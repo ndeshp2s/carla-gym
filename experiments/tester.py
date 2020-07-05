@@ -37,7 +37,7 @@ class Tester:
             #input('Enter to continue: ')
             #data_vis = DataVisualization(x_min = 0, x_max = 32, y_min = -16, y_max = 16)
 
-            for step_num in range(self.config.steps_per_episode*4):
+            for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
                 # Select action
                 action, hidden_state1, cell_state1, hidden_state2, cell_state2, q_values = self.agent.pick_action(state = state, batch_size = 1, time_step = 1, hidden_state1 = hidden_state1, cell_state1 = cell_state1, hidden_state2 = hidden_state2, cell_state2 = cell_state2, epsilon = epsilon)
@@ -51,7 +51,7 @@ class Tester:
                 next_state, reward, done, info = self.env.step(action, model_output = q_values, speed = ev_speed)
                 # for i in range(3):
                 #    next_state, reward, done, info = self.env.step(action)
-                print(action, self.env.get_ego_speed(), reward, self.env.planner.local_planner.get_target_speed(), step_num)
+                #print(action, self.env.get_ego_speed(), reward, self.env.planner.local_planner.get_target_speed(), step_num)
 
                 # calculate average speed
                 if self.env.get_ego_speed() > 0.5:

@@ -67,8 +67,8 @@ ped_max_speed = 3.0
 # Spawner related
 num_of_ped = 8
 num_of_veh = 0
-percentage_pedestrians_crossing = 0.7
-percentage_pedestrians_crossing_illegal = 0.2
+percentage_pedestrians_crossing = 0.8
+percentage_pedestrians_crossing_illegal = 0.1
 ped_spawn_min_dist = 8.0
 ped_spawn_max_dist = 30.0
 ped_max_dist = 35.0

@@ -22,6 +22,7 @@ import carla
 
 
 from environments.urban_environment.urban_env import UrbanEnv as CarlaEnv
+from environments.urban_environment.spawner import Spawner
 
 
 env = gym.make('Urban-v0')
@@ -207,7 +208,7 @@ def main():
 
     env.reset(client_only = True)
 
-    env.world.set_pedestrians_cross_factor(7.0)
+    env.world.set_pedestrians_cross_factor(0.7)
     env. world.set_pedestrians_cross_illegal_factor(0.3)
 
     # client = carla.Client('localhost', 2000)
@@ -228,8 +229,8 @@ def main():
 
     # veh = world.spawn_actor(bp, sp)
 
-    # spawner = Spawner()
-    # spawner.reset()
+    spawner = Spawner()
+    spawner.reset()
 
 
     try:
@@ -263,7 +264,7 @@ def main():
 
             # find_ttc(veh.get_transform())
 
-            # spawner.run_step(ev_trans = veh.get_transform())
+            spawner.run_step(ev_trans = ev_trans)
 
             # for p in spawner.pedestrian_list:
 

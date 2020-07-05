@@ -21,11 +21,11 @@ class NeuralNetwork(nn.Module):
 
         self.lstm_layer1 = nn.LSTM(input_size = 192, hidden_size = 512, num_layers = 1, batch_first = True)
 
-        self.lstm_layer2 = nn.LSTM(input_size = 3, hidden_size = 128, num_layers = 1, batch_first = True)
+        self.lstm_layer2 = nn.LSTM(input_size = 2, hidden_size = 128, num_layers = 1, batch_first = True)
 
-        self.fc1 = nn.Linear(in_features = 640, out_features = 128)
+        self.fc1 = nn.Linear(in_features = 640, out_features = self.output_size)
 
-        self.fc2 = nn.Linear(in_features = 128, out_features = self.output_size)
+        #self.fc2 = nn.Linear(in_features = 128, out_features = self.output_size)
         
         self.relu = nn.ReLU()
 
@@ -61,7 +61,7 @@ class NeuralNetwork(nn.Module):
         h_n1 = lstm_out1[1][0]
         c_n1 = lstm_out1[1][1]
 
-        x2 = x2.view(batch_size, time_step, 3)
+        x2 = x2.view(batch_size, time_step, 2)
         lstm_out2 = self.lstm_layer2(x2, (hidden_state2, cell_state2))
         output2 = lstm_out2[0][:, time_step - 1, :]
         h_n2 = lstm_out2[1][0]
@@ -70,8 +70,8 @@ class NeuralNetwork(nn.Module):
         output = torch.cat((output2, output1), dim = 1)
 
         output = self.fc1(output)
-        output = self.relu(output)
-        output = self.fc2(output)
+        #output = self.relu(output)
+        #output = self.fc2(output)
 
         return output, (h_n1, c_n1), (h_n2, c_n2)
 

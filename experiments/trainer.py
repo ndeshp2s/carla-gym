@@ -66,9 +66,13 @@ class Trainer:
             hidden_state1, cell_state1 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 512)
             hidden_state2, cell_state2 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 128)
 
+            #print(self.agent.memory_collision.__len__(), self.agent.memory.__len__())
+
             for step_num in range(self.config.steps_per_episode):
                 #data_vis.display(state[0])
-                if self.agent.memory.__len__() >= self.config.hyperparameters["batch_size"] and self.start_learning == False:
+                
+                size_ = int(self.config.hyperparameters["batch_size"]/2)
+                if self.agent.memory_collision.__len__() >= size_ and self.agent.memory.__len__() >= size_ and self.start_learning == False:
                     self.start_learning = True
                     episode_number = previous_episode + 1
                     ep_num = previous_episode + 1
@@ -124,7 +128,7 @@ class Trainer:
                 loss = 0
 
                 if self.start_learning:
-                    for i in range(2):
+                    for i in range(1):
                         loss = self.agent.learn(batch_size = self.config.hyperparameters["batch_size"], time_step = self.config.hyperparameters["sequence_length"], step = total_steps)
 
                     #self.writer.add_scalar('Loss per step', loss, total_steps)
@@ -146,11 +150,14 @@ class Trainer:
 
             # Save the episode
             if len(local_memory) >= (self.config.hyperparameters["sequence_length"]):
-                self.agent.add(local_memory)
+                if info == 'Collision':
+                    self.agent.add(local_memory, collision = True)
+                else:
+                    self.agent.add(local_memory, collision = False)
 
-                if info == 'Collision' and self.start_learning is True:
-                    for i in range(3):
-                        self.agent.add(local_memory)
+                # if info == 'Collision' and self.start_learning is True:
+                #     for i in range(3):
+                #         self.agent.add(local_memory)
                     #self.agent.add(local_memory)
 
 
@@ -216,7 +223,7 @@ class Trainer:
         #self.previous_episode = checkpoint['episode']
         #self.config.hyperparameters["epsilon_start"] = 0.2#checkpoint['epsilon']
         #self.config.hyperparameters["epsilon_before_learning"] = 0.2#checkpoint['epsilon']
-        #self.steps = checkpoint['total_steps']
+        self.steps = 0#checkpoint['total_steps']
 
         self.agent.local_network.train()
         self.agent.target_network.train()

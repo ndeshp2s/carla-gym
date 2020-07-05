@@ -31,11 +31,16 @@ class DDQNCNNLSTMAgent:
         self.criterion = torch.nn.MSELoss()
 
         # Initialise replay memory
-        self.memory = ReplayBuffer(self.hyperparameters["buffer_size"])
+        size = self.hyperparameters["buffer_size"]/2
+        self.memory_collision = ReplayBuffer(int(size))
+        self.memory = ReplayBuffer(int(size))
 
 
-    def add(self, episode):
-        self.memory.add_episode(episode)
+    def add(self, episode, collision = False):
+        if collision is True:
+            self.memory_collision.add_episode(episode)
+        else:
+            self.memory.add_episode(episode)
 
 
     def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = False):
@@ -44,7 +49,9 @@ class DDQNCNNLSTMAgent:
         hidden_batch1, cell_batch1 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 512)
         hidden_batch2, cell_batch2 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 128)
 
-        batch  = self.memory.get_batch(batch_size = batch_size, time_step = time_step)
+        batch1  = self.memory_collision.get_batch(batch_size = int(batch_size/2), time_step = time_step)
+        batch2  = self.memory.get_batch(batch_size = int(batch_size/2), time_step = time_step)
+        batch = batch1 + batch2
 
         states1 = []
         states2 = []
@@ -155,6 +162,9 @@ class DDQNCNNLSTMAgent:
             #action = np.random.randint(0, 4)
                 #action = np.random.choice(np.arange(0, 4), p = [0.2, 0.2, 0.25, 0.2]) 
 
+
+
+
             if pre_train is True:
                 action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
 
@@ -163,6 +173,8 @@ class DDQNCNNLSTMAgent:
 
             else:
                 action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
+
+            #action = np.random.choice(np.arange(0, 4), p = [1.0, 0.0, 0.0, 0.0])
 
 
 

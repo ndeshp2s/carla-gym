@@ -56,7 +56,7 @@ class UrbanEnv(CarlaGym):
         self.current_speed = 0.0
         self.previous_speed = 0.0
         self.max_allowed_speed = 15.0
-        self.max_reachable_speed = 25.0
+        self.max_reachable_speed = 20.0
 
         self.previous_throttle = 0.0
 
@@ -93,7 +93,7 @@ class UrbanEnv(CarlaGym):
 
     def _get_observation(self, action = 0):
         tensor1 = np.zeros([self.state_y, self.state_x, self.channel])
-        tensor2 = np.zeros([3])
+        tensor2 = np.zeros([2])
 
         # Fill ego vehicle information
         ev_trans = self.ego_vehicle.get_transform()
@@ -108,7 +108,7 @@ class UrbanEnv(CarlaGym):
         ev_head = round(ev_head, 2)
         ev_head_norm = self.normalize_data(ev_head, 0.0, 360.0)
         ev_head_norm = round(ev_head_norm, 2)
-        tensor2[2] = ev_head_norm
+        #tensor2[2] = ev_head_norm
 
         action_norm = self.normalize_data(action, 0.0, 3.0)
         tensor2[1] = action_norm
@@ -208,7 +208,7 @@ class UrbanEnv(CarlaGym):
         #print(ttc, near_collision, collision)
 
         if collision:
-            if ev_speed >= 0.5:
+            if ev_speed > 0.0:
                 c_reward = -10
                 info = 'Collision'
             else:
@@ -685,14 +685,17 @@ class UrbanEnv(CarlaGym):
                     ped_new_position_x = round(ped_new_position_x, 2)
                     ped_new_position_y = round(ped_new_position_y, 2)
 
-                    ped_point_ttc = Point(ped_new_position_x, ped_new_position_y).buffer(1.0)
+                    ped_point_ttc = Point(ped_new_position_x, ped_new_position_y).buffer(0.5)
                     ped_point_collision = Point(ped_trans.location.x, ped_trans.location.y).buffer(1.0)
 
                     
                     # Check for collision
                     if ev_polygon.intersects(ped_point_collision):
-                        collision = True
-                        return 0, near_collision, collision
+                        target_waypoint = self.map.get_waypoint(ped.get_location(), project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
+
+                        if target_waypoint.lane_type == carla.LaneType.Driving:
+                            collision = True
+                            return 0, near_collision, collision
 
                     if ev_polygon_next.intersects(ped_point_ttc) == True:
                         if ttc > dt:
