@@ -31,11 +31,14 @@ class ReplayBuffer():
 
         #return experiences
 
-    def get_batch(self, batch_size = 1, time_step = 1):
+    def get_batch(self, batch_size = 1, time_step = 1, collision = False):
         episodes = random.sample(self.memory, batch_size)
 
         batch = []
         for e in episodes:
+            #if collision:
+            #    point = len(e) - time_step
+            #else:
             point = np.random.randint(0, len(e) + 1 - time_step)
             batch.append(e[point:point + time_step])
         return batch

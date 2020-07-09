@@ -46,10 +46,10 @@ class DDQNCNNLSTMAgent:
     def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = False):
 
 
-        hidden_batch1, cell_batch1 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 512)
-        hidden_batch2, cell_batch2 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 128)
+        hidden_batch1, cell_batch1 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 256)
+        hidden_batch2, cell_batch2 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 256)
 
-        batch1  = self.memory_collision.get_batch(batch_size = int(batch_size/2), time_step = time_step)
+        batch1  = self.memory_collision.get_batch(batch_size = int(batch_size/2), time_step = time_step, collision = True)
         batch2  = self.memory.get_batch(batch_size = int(batch_size/2), time_step = time_step)
         batch = batch1 + batch2
 
@@ -165,16 +165,22 @@ class DDQNCNNLSTMAgent:
 
 
 
-            if pre_train is True:
-                action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
+            # if pre_train is True:
+            #     action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
 
-            elif learning is True:
-                action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
 
-            else:
-                action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
+            # elif learning is True:
+            #     action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
 
-            #action = np.random.choice(np.arange(0, 4), p = [1.0, 0.0, 0.0, 0.0])
+            # # # elif learning is True:
+            # # #     action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
+
+            # else:
+            #     action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
+            #else:
+            #action = np.random.choice(np.arange(0, 4), p = [0.20, 0.3, 0.3, 0.20])
+            #else:
+            action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
 
 
 
