@@ -52,7 +52,14 @@ class Tester:
                 # if action == 1 or 2:
                 # for i in range(3):
                 #     next_state, reward, done, info = self.env.step(action)
+                if action == 2:
+                    for i in range(3):
+                        next_state, reward, done, info = self.env.step(3)
+                else:
+                    for i in range(3):
+                        next_state, reward, done, info = self.env.step(action)
                 print(action, self.env.get_ego_speed(), reward, self.env.planner.local_planner.get_target_speed(), step_num)
+                print('q_values:', q_values)
 
                 # calculate average speed
                 if self.env.get_ego_speed() > 0.5:

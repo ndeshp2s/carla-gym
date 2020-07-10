@@ -209,7 +209,7 @@ class UrbanEnv(CarlaGym):
         #print(ttc, near_collision, collision)
 
         if collision:
-            if ev_speed > 0.10:
+            if ev_speed > 1.0:
                 c_reward = -10
                 info = 'Collision'
                 done = True

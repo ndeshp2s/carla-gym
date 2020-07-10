@@ -146,7 +146,7 @@ class Spawner(object):
                 controller.go_to_location(goal.location)
                 #controller.go_to_location(self.world.get_random_location_from_navigation())
 
-                controller.set_max_speed(round(random.uniform(0.75, 2.0), 2))
+                controller.set_max_speed(round(random.uniform(0.75, 1.7), 2))
 
                 index = self.pedestrian_list.index(p)
                 self.pedestrian_list[index]["controller"] = controller.id

@@ -180,7 +180,8 @@ class DDQNCNNLSTMAgent:
             #else:
             #action = np.random.choice(np.arange(0, 4), p = [0.20, 0.3, 0.3, 0.20])
             #else:
-            action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
+            #action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
+            action = np.random.choice(np.arange(0, 4), p = [0.4, 0.30, 0.0, 0.3])
 
 
 

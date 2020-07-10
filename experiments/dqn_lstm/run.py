@@ -52,7 +52,7 @@ def main(args):
     config.use_cuda = False
 
     config.number_of_episodes = 220
-    config.steps_per_episode = 1000
+    config.steps_per_episode = 300
     config.previous_episode = 0
     config.total_steps = 50000
     config.pre_train_steps = 1
