@@ -17,11 +17,11 @@ class DDQNCNNLSTMAgent:
 
         self.hyperparameters = config.hyperparameters
 
-        # if config.use_cuda:
-        #     self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if config.use_cuda:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        # else:
-        self.device = "cpu"
+        else:
+            self.device = "cpu"
 
         # Initialise Q-Network
         self.local_network = NeuralNetwork(self.state_size, self.action_size, self.device).to(self.device)
@@ -31,27 +31,19 @@ class DDQNCNNLSTMAgent:
         self.criterion = torch.nn.MSELoss()
 
         # Initialise replay memory
-        size = self.hyperparameters["buffer_size"]/2
-        self.memory_collision = ReplayBuffer(int(size))
         self.memory = ReplayBuffer(int(size))
+        
 
-
-    def add(self, episode, collision = False):
-        if collision is True:
-            self.memory_collision.add_episode(episode)
-        else:
-            self.memory.add_episode(episode)
+    def add(self, episode):
+        self.memory.add_episode(episode)
 
 
     def learn(self, batch_size, time_step, experiences = None, step = 0, soft_update = False):
 
+        hidden_batch1, cell_batch1 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 256)
+        hidden_batch2, cell_batch2 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 256)
 
-        hidden_batch1, cell_batch1 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 512)
-        hidden_batch2, cell_batch2 = self.local_network.init_hidden_states(batch_size = batch_size, lstm_memory = 128)
-
-        batch1  = self.memory_collision.get_batch(batch_size = int(batch_size/2), time_step = time_step)
-        batch2  = self.memory.get_batch(batch_size = int(batch_size/2), time_step = time_step)
-        batch = batch1 + batch2
+        batch  = self.memory.get_batch(batch_size = batch_size, time_step = time_step)
 
         states1 = []
         states2 = []
@@ -96,6 +88,7 @@ class DDQNCNNLSTMAgent:
         q_next_target_all, _, _ = self.target_network.forward(x1 = next_states1, x2 = next_states2, batch_size = batch_size, time_step = time_step, hidden_state1 = hidden_batch1, cell_state1 = cell_batch1, hidden_state2 = hidden_batch2, cell_state2 = cell_batch2)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
+        #q_next_target = q_next_target_all.gather(1, q_next_target_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation
         q_target = rewards[:, time_step - 1] + (self.hyperparameters["discount_rate"] * q_next_target)
 
@@ -137,7 +130,7 @@ class DDQNCNNLSTMAgent:
             self.target_network.load_state_dict(self.local_network.state_dict())
 
 
-    def pick_action(self, state, batch_size, time_step, hidden_state1, cell_state1, hidden_state2, cell_state2, epsilon, learning = True, episode_number = 0, pre_train = False):
+    def pick_action(self, state, batch_size, time_step, hidden_state1, cell_state1, hidden_state2, cell_state2, epsilon):
         state_tensor1 = torch.from_numpy(state[0]).float().unsqueeze(0).to(self.device)
         state_tensor2 = torch.from_numpy(state[1]).float().unsqueeze(0).to(self.device)
 
@@ -148,33 +141,11 @@ class DDQNCNNLSTMAgent:
         hidden_state2 = model_output[2][0]
         cell_state2 = model_output[2][1]
 
-        #if np.random.uniform() > epsilon:
         if random.random() > epsilon:
-            #print('Q values: ', model_output[0])
             action = int(torch.argmax(model_output[0]))
 
         else:
-            #action = np.random.randint(0, 4)
-            #action = random.randrange(3)
-            # if learning is False:
-            #     action = np.random.choice(np.arange(0, 4), p = [0.5, 0.5, 0.0, 0.0])                
-            # else:
-            #action = np.random.randint(0, 4)
-                #action = np.random.choice(np.arange(0, 4), p = [0.2, 0.2, 0.25, 0.2]) 
-
-
-
-
-            if pre_train is True:
-                action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
-
-            elif learning is True:
-                action = np.random.choice(np.arange(0, 4), p = [0.3, 0.20, 0.20, 0.3])
-
-            else:
-                action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
-
-            #action = np.random.choice(np.arange(0, 4), p = [1.0, 0.0, 0.0, 0.0])
+            action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25])
 
 
 
